@@ -1,0 +1,27 @@
+// Sieve of Eratosthenes: bool arrays, nested loops, break/continue.
+
+fn main() -> int {
+    let is_composite: [bool; 100];
+    let count = 0;
+    for i in 2..100 {
+        if is_composite[i] {
+            continue;
+        }
+        count = count + 1;
+        let j = i * i;
+        while j < 100 {
+            is_composite[j] = true;
+            j = j + i;
+        }
+    }
+    print(count);
+
+    // Print the first prime above 50.
+    for k in 51..100 {
+        if !is_composite[k] {
+            print(k);
+            break;
+        }
+    }
+    return 0;
+}

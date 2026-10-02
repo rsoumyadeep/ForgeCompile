@@ -124,3 +124,70 @@ one and links back to it.
   in `docs/phases/PHASE_N.md`. Docs for future phases exist from Phase 0 with an explicit
   "not yet implemented" status, so the structure is stable and nothing pretends to exist
   before it does.
+
+## D-009 — Hand-written lexer and parser (recursive descent + Pratt)
+
+- **Date:** 2026-10-02 (Phase 1)
+- **Alternatives:** a parser generator (Lark, ANTLR, PLY/yacc); parser combinators.
+- **Chosen:** a hand-written lexer, recursive descent for declarations and statements, and a
+  Pratt loop for expressions.
+- **Why:**
+  - Error messages are under full control. Messages such as "expected ';' after variable
+    declaration", positioned just after the previous token, and the "did you mean '&&'?"
+    hint are hard to get from generated parsers.
+  - Recovery policy is under full control (panic mode with brace tracking).
+  - No dependency.
+  - Every line can be explained in an interview. The approach mirrors production compilers
+    (Clang, rustc and Go use hand-written recursive descent).
+- **Trade-offs:** more code than a grammar file, and the grammar is not machine-checked for
+  ambiguity. This is mitigated by an EBNF spec in LANGUAGE.md, precedence tests, and the
+  randomized round-trip property test.
+
+## D-010 — Language semantics are fully defined (no undefined behaviour)
+
+- **Date:** 2026-10-02 (Phase 1; enforced in Phases 2/3/5)
+- **Context:** Optimizations are validated by *differential testing*: unoptimized vs optimized
+  vs native output must be identical. Under C-style undefined behaviour (signed overflow,
+  division by zero, out-of-bounds access) a "correct" optimizer may legally change outputs,
+  and the tests could not distinguish a bug from legal behaviour.
+- **Chosen:**
+  - Wrapping integer arithmetic.
+  - Truncating division, and a runtime error on division by zero; `INT_MIN / -1` wraps.
+  - Saturating float→int casts (Rust/`llvm.fptosi.sat` semantics).
+  - Bounds-checked arrays.
+  - Zero-initialization.
+  - Runtime errors exit with status 101.
+  - `print(float)` uses `%.6f`.
+- **Trade-offs:** The native backend must emit explicit checks for division and bounds, which
+  costs some speed. Those checks are also realistic optimization targets later, for example
+  removing a bounds check that is provably in range.
+- **Consequences:** The interpreter must implement C division semantics, not Python's `//`
+  and `%`. Float printing must be verified to match between Python and native `printf`
+  (Phase 5).
+
+## D-011 — Restricted counted `for` loops; arrays by reference, not first-class
+
+- **Date:** 2026-10-02 (Phase 1)
+- **Alternatives:** C-style `for (init; cond; step)`; first-class array values with copy
+  semantics.
+- **Chosen:** `for i in a..b` with a read-only induction variable, an end bound evaluated
+  once, and arrays passed to functions by reference.
+- **Why:**
+  - Counted loops with a known induction variable are exactly what loop optimizations need
+    (LICM, strength reduction, unrolling). They also make loop-count features well defined
+    for the ML phase.
+  - `while` remains available for arbitrary loops.
+  - Making arrays non-first-class avoids implementing array copies and aliasing rules for
+    whole-array assignment.
+- **Trade-off:** less expressive than C. Since arrays are passed by reference, two parameters
+  may alias the same array, so optimizations must still treat array memory conservatively.
+
+## D-012 — pytest `--import-mode=importlib`
+
+- **Date:** 2026-10-02 (Phase 1)
+- **Context:** Tests are organized in sub-directories (`tests/frontend/`, later
+  `tests/semantic/`, ...). The default import mode requires globally unique test file
+  basenames or `__init__.py` files.
+- **Chosen:** importlib mode, with no `__init__.py` in test directories.
+- **Trade-off:** test modules cannot import each other. Shared helpers must go in
+  `conftest.py` or in the package itself.

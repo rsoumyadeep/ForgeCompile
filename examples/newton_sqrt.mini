@@ -1,0 +1,25 @@
+// Newton's method for square roots: floating point arithmetic and casts.
+
+fn abs(x: float) -> float {
+    if x < 0.0 {
+        return -x;
+    }
+    return x;
+}
+
+fn sqrt(x: float) -> float {
+    let guess = x / 2.0;
+    let iterations = 0;
+    while abs(guess * guess - x) > 1e-9 && iterations < 100 {
+        guess = (guess + x / guess) / 2.0;
+        iterations = iterations + 1;
+    }
+    return guess;
+}
+
+fn main() -> int {
+    print(sqrt(2.0));
+    print(sqrt(144.0));
+    print(sqrt(10.0) as int);
+    return 0;
+}

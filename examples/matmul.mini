@@ -1,0 +1,32 @@
+// Dense 3x3 float matrix multiplication with 2-D arrays.
+
+fn matmul(a: [[float; 3]; 3], b: [[float; 3]; 3], c: [[float; 3]; 3]) {
+    for i in 0..3 {
+        for j in 0..3 {
+            let sum = 0.0;
+            for k in 0..3 {
+                sum = sum + a[i][k] * b[k][j];
+            }
+            c[i][j] = sum;
+        }
+    }
+}
+
+fn main() -> int {
+    let a: [[float; 3]; 3];
+    let b: [[float; 3]; 3];
+    let c: [[float; 3]; 3];
+    for i in 0..3 {
+        for j in 0..3 {
+            a[i][j] = (i * 3 + j) as float;
+            b[i][j] = (i == j) as float * 2.0;
+        }
+    }
+    matmul(a, b, c);
+    let trace = 0.0;
+    for i in 0..3 {
+        trace = trace + c[i][i];
+    }
+    print(trace);
+    return 0;
+}

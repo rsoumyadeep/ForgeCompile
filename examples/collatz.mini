@@ -1,0 +1,29 @@
+// Longest Collatz sequence below a bound: while loops, nested control flow.
+
+fn collatz_length(n: int) -> int {
+    let steps = 1;
+    while n != 1 {
+        if n % 2 == 0 {
+            n = n / 2;
+        } else {
+            n = 3 * n + 1;
+        }
+        steps = steps + 1;
+    }
+    return steps;
+}
+
+fn main() -> int {
+    let best = 0;
+    let best_start = 0;
+    for start in 1..1000 {
+        let length = collatz_length(start);
+        if length > best {
+            best = length;
+            best_start = start;
+        }
+    }
+    print(best_start);
+    print(best);
+    return 0;
+}

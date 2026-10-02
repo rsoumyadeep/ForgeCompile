@@ -1,0 +1,27 @@
+// Bubble sort on an int array passed by reference.
+
+fn sort(values: [int; 8]) {
+    for i in 0..8 {
+        let swapped = false;
+        for j in 0..7 - i {
+            if values[j] > values[j + 1] {
+                let tmp = values[j];
+                values[j] = values[j + 1];
+                values[j + 1] = tmp;
+                swapped = true;
+            }
+        }
+        if !swapped {
+            return;
+        }
+    }
+}
+
+fn main() -> int {
+    let data: [int; 8] = [5, -3, 9, 0, 12, 7, -8, 1];
+    sort(data);
+    for i in 0..8 {
+        print(data[i]);
+    }
+    return 0;
+}

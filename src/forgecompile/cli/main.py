@@ -5,7 +5,11 @@ receives the parsed ``argparse.Namespace`` and returns a process exit code.
 Currently available:
 
     forgecompile --version
-    forgecompile info [--json]     environment + backend toolchain report
+    forgecompile info [--json]       environment + backend toolchain report
+    forgecompile lex FILE            token stream
+    forgecompile parse FILE          AST dump (--format: canonical source)
+
+Exit codes: 0 success, 1 compile error (diagnostics on stderr), 2 usage error.
 """
 
 from __future__ import annotations
@@ -16,11 +20,12 @@ import sys
 from collections.abc import Sequence
 
 from forgecompile import __version__
+from forgecompile.cli import frontend_commands
+from forgecompile.cli.common import EXIT_COMPILE_ERROR, EXIT_OK, EXIT_USAGE, CliError
 from forgecompile.utils.environment import collect_environment
 from forgecompile.utils.logging import configure_logging
 
-EXIT_OK = 0
-EXIT_USAGE = 2
+__all__ = ["EXIT_COMPILE_ERROR", "EXIT_OK", "EXIT_USAGE", "build_parser", "main"]
 
 
 def _cmd_info(args: argparse.Namespace) -> int:
@@ -63,6 +68,7 @@ def build_parser() -> argparse.ArgumentParser:
     info.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     info.set_defaults(handler=_cmd_info)
 
+    frontend_commands.register(subparsers)
     return parser
 
 
@@ -75,7 +81,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     if handler is None:
         parser.print_help(sys.stderr)
         return EXIT_USAGE
-    exit_code: int = handler(args)
+    try:
+        exit_code: int = handler(args)
+    except CliError as error:
+        print(f"forgecompile: error: {error}", file=sys.stderr)
+        return EXIT_COMPILE_ERROR
     return exit_code
 
 

@@ -9,7 +9,7 @@ Status legend: ✅ done · 🔨 in progress · ⏳ not started · ⚠️ done wi
 | # | Phase | Status | Report |
 |---|-------|--------|--------|
 | 0 | Project foundation | ✅ | [PHASE_0](phases/PHASE_0.md) |
-| 1 | MiniLang frontend (lexer, parser, AST) | ⏳ | — |
+| 1 | MiniLang frontend (lexer, parser, AST) | ✅ | [PHASE_1](phases/PHASE_1.md) |
 | 2 | Semantic analysis | ⏳ | — |
 | 3 | IR, reference interpreter, CFG, SSA | ⏳ | — |
 | 4 | Classical optimization engine | ⏳ | — |
@@ -35,7 +35,7 @@ Status legend: ✅ done · 🔨 in progress · ⏳ not started · ⚠️ done wi
 - [x] All required docs exist. Sections for unimplemented phases are explicitly marked.
 - [x] CI workflow (lint + type-check + tests on Linux and Windows).
 
-## Phase 1 — MiniLang frontend
+## Phase 1 — MiniLang frontend ✅
 
 **Objective:** turn MiniLang source into an AST with precise source locations.
 
@@ -47,9 +47,11 @@ Status legend: ✅ done · 🔨 in progress · ⏳ not started · ⚠️ done wi
 - Syntax errors show the location and a source excerpt. The parser recovers so that it can
   report more than one error.
 
-**Acceptance:** tests cover valid programs, invalid syntax, precedence and associativity,
-nesting, functions, loops and arrays. An AST pretty-printer (`forgecompile parse`)
-round-trips the example programs.
+**Acceptance** (all met)
+- [x] Tests cover valid programs, invalid syntax, precedence and associativity, nesting,
+  functions, loops and arrays (139 frontend tests).
+- [x] The AST pretty-printer (`forgecompile parse --format`) round-trips all example
+  programs, plus 1,000 random expression trees.
 
 ## Phase 2 — Semantic analysis
 

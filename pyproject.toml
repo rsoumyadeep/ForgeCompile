@@ -29,7 +29,7 @@ packages = ["src/forgecompile"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers --import-mode=importlib"
 markers = [
     "slow: long-running tests (benchmarks, training); deselect with -m 'not slow'",
     "native: tests that build and execute native binaries",

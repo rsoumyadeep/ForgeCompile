@@ -23,7 +23,15 @@ uv run pytest
 
 ## 3. Compile programs
 
-_Available from Phase 1 onward. This section grows with each phase._
+This section grows with each phase. Currently the frontend is available:
+
+```bash
+uv run forgecompile lex examples/gcd.mini              # token stream with line:column
+uv run forgecompile parse examples/gcd.mini            # AST tree
+uv run forgecompile parse --format examples/gcd.mini   # canonical source (round-trippable)
+```
+
+Syntax errors are printed to stderr with source excerpts, and the exit code is 1.
 
 ## 4. Reproduce experiments
 
