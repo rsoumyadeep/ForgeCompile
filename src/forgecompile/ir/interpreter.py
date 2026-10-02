@@ -29,13 +29,15 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any
 
+from forgecompile.ir.evaluate import eval_binary, eval_compare, eval_unary
 from forgecompile.ir.function import BasicBlock, Function, Module
 from forgecompile.ir.instructions import (
+    BINARY_OPCODES,
+    UNARY_OPCODES,
     AllocaInst,
     BoundsCheckInst,
     BranchInst,
     CallInst,
-    CmpPred,
     CompareInst,
     Instruction,
     JumpInst,
@@ -102,22 +104,6 @@ class _Frame:
 
 def _zero_of(ty: IRType) -> Any:
     return {IRType.I64: 0, IRType.F64: 0.0, IRType.I1: False}[ty]
-
-
-def _compare(pred: CmpPred, a: Any, b: Any) -> bool:
-    match pred:
-        case CmpPred.EQ:
-            return bool(a == b)
-        case CmpPred.NE:
-            return bool(a != b)
-        case CmpPred.LT:
-            return bool(a < b)
-        case CmpPred.LE:
-            return bool(a <= b)
-        case CmpPred.GT:
-            return bool(a > b)
-        case CmpPred.GE:
-            return bool(a >= b)
 
 
 class IRInterpreter:
@@ -242,43 +228,13 @@ class IRInterpreter:
         read = self._read
         ops = inst.operands
         result: Any
-        if op is Opcode.ADD:
-            result = sem.wrap(read(frame, ops[0]) + read(frame, ops[1]))
-        elif op is Opcode.SUB:
-            result = sem.wrap(read(frame, ops[0]) - read(frame, ops[1]))
-        elif op is Opcode.MUL:
-            result = sem.wrap(read(frame, ops[0]) * read(frame, ops[1]))
-        elif op is Opcode.SDIV:
-            result = sem.int_div(read(frame, ops[0]), read(frame, ops[1]))
-        elif op is Opcode.SREM:
-            result = sem.int_rem(read(frame, ops[0]), read(frame, ops[1]))
-        elif op is Opcode.NEG:
-            result = sem.wrap(-read(frame, ops[0]))
-        elif op is Opcode.FADD:
-            result = read(frame, ops[0]) + read(frame, ops[1])
-        elif op is Opcode.FSUB:
-            result = read(frame, ops[0]) - read(frame, ops[1])
-        elif op is Opcode.FMUL:
-            result = read(frame, ops[0]) * read(frame, ops[1])
-        elif op is Opcode.FDIV:
-            result = sem.float_div(read(frame, ops[0]), read(frame, ops[1]))
-        elif op is Opcode.FREM:
-            result = sem.float_rem(read(frame, ops[0]), read(frame, ops[1]))
-        elif op is Opcode.FNEG:
-            result = -read(frame, ops[0])
+        if op in BINARY_OPCODES:
+            result = eval_binary(op, read(frame, ops[0]), read(frame, ops[1]))
+        elif op in UNARY_OPCODES:
+            result = eval_unary(op, read(frame, ops[0]))
         elif op is Opcode.ICMP or op is Opcode.FCMP:
             assert isinstance(inst, CompareInst)
-            result = _compare(inst.pred, read(frame, ops[0]), read(frame, ops[1]))
-        elif op is Opcode.NOT:
-            result = not read(frame, ops[0])
-        elif op is Opcode.SITOFP:
-            result = float(read(frame, ops[0]))
-        elif op is Opcode.FPTOSI:
-            result = sem.float_to_int(read(frame, ops[0]))
-        elif op is Opcode.ZEXT:
-            result = int(read(frame, ops[0]))
-        elif op is Opcode.COPY:
-            result = read(frame, ops[0])
+            result = eval_compare(inst.pred, read(frame, ops[0]), read(frame, ops[1]))
         elif op is Opcode.ALLOCA:
             assert isinstance(inst, AllocaInst)
             result = ([_zero_of(inst.elem_type)] * inst.count, 0)

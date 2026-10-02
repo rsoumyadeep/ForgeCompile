@@ -10,7 +10,9 @@ Currently available:
     forgecompile parse FILE          AST dump (--format: canonical source)
     forgecompile check FILE          parse + type-check (--dump: typed AST)
     forgecompile ir FILE             SSA IR (--no-ssa: IR straight from lowering)
-    forgecompile run FILE            execute (--engine ir|ir-nossa|ast, --stats)
+    forgecompile opt FILE -O2        optimized IR (--passes a,b,c; --stats: per-pass report)
+    forgecompile passes              list passes and presets
+    forgecompile run FILE            execute (--engine ir|ir-nossa|ast, -O/--passes, --stats)
 
 Exit codes: 0 success, 1 compile error (diagnostics on stderr), 2 usage error.
 `run` exits with the program's own exit status (101 on a MiniLang runtime error).
