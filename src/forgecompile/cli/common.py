@@ -30,6 +30,22 @@ def read_source(path: str) -> SourceFile:
     return SourceFile(str(file), text)
 
 
+def write_program_output(text: str) -> None:
+    """Write a MiniLang program's stdout byte-exactly.
+
+    Python's text-mode stdout turns "\n" into "\r\n" on Windows. MiniLang's
+    observable output is exactly "\n" (native executables write it that way too),
+    so the bytes are written to the underlying buffer when one exists.
+    """
+    buffer = getattr(sys.stdout, "buffer", None)
+    if buffer is None:
+        sys.stdout.write(text)
+        return
+    sys.stdout.flush()
+    buffer.write(text.encode("utf-8"))
+    buffer.flush()
+
+
 def run_compile_step(source: SourceFile, step: Callable[[], int]) -> int:
     """Run ``step``; render any CompileError against ``source`` to stderr."""
     try:

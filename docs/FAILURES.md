@@ -262,3 +262,18 @@ Template:
   program.
 - **Lesson:** An oracle is only useful within its limits, and those limits must fail loudly
   and clearly, not as an interpreter crash that could be mistaken for a compiler bug.
+
+## F-013 — `forgecompile run` printed CRLF line endings on Windows (interpreter engines)
+
+- **Date / Phase:** 2026-10-02, Phase 5 (found right after the phase commit)
+- **Symptom:** git warned that the golden file `semantics_edge.expected` contained CRLF. That
+  file had been produced with `forgecompile run --engine ast > file`.
+- **Root cause:** The CLI wrote interpreter output with `sys.stdout.write`. Python's text-mode
+  stdout translates `\n` to `\r\n` on Windows, while native executables (binary-mode stdout,
+  D-029) write exact `\n`. Tests were unaffected, because they compare outputs in-process and
+  read golden files in universal-newline mode, so nothing failed.
+- **Fix:** `cli.common.write_program_output` writes UTF-8 bytes to `sys.stdout.buffer`. The
+  golden file was normalized to LF. `forgecompile run examples/gcd.mini | od -c` now shows
+  `\n` only.
+- **Lesson:** "Observable behaviour" includes the bytes a user sees at the terminal, not just
+  the strings compared inside the test suite.

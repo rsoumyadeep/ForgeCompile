@@ -6,7 +6,13 @@ import argparse
 import sys
 
 from forgecompile.backend.native import build_and_run
-from forgecompile.cli.common import EXIT_OK, CliError, read_source, run_compile_step
+from forgecompile.cli.common import (
+    EXIT_OK,
+    CliError,
+    read_source,
+    run_compile_step,
+    write_program_output,
+)
 from forgecompile.driver import build_ir, check_source, compile_to_llvm
 from forgecompile.ir.function import Module
 from forgecompile.ir.interpreter import IRExecutionResult, run_module
@@ -105,14 +111,14 @@ def _cmd_run(args: argparse.Namespace) -> int:
         elif args.engine == "native":
             llvm_ir, _ = compile_to_llvm(source.text, source.name, pipeline)
             _, native = build_and_run(llvm_ir, args.llvm_opt)
-            sys.stdout.write(native.stdout)
+            write_program_output(native.stdout)
             sys.stderr.write(native.stderr)
             return native.exit_code
         else:
             module, _ = _optimized(source.text, source.name, pipeline)
             stats = run_module(module)
             result = stats
-        sys.stdout.write(result.stdout)
+        write_program_output(result.stdout)
         if result.trap is not None:
             print(f"runtime error: {result.trap}", file=sys.stderr)
         if args.stats and stats is not None:
