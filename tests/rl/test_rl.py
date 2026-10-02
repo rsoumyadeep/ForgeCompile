@@ -164,3 +164,12 @@ def test_dqn_policy_runs_on_real_programs() -> None:
     result = schedule(DQNPolicy(agent), build_ir(LOOPY), max_steps=5)
     assert len(result.actions) <= 5
     assert math.isfinite(float(agent.q_values(env.reset()[0]).max()))
+
+
+def test_training_shorter_than_warmup_still_yields_a_usable_agent(tmp_path: Path) -> None:
+    """Regression: a run ending inside the warm-up left the normalizer unset (save failed)."""
+    env = _BanditEnv()
+    agent = DQNAgent(env.obs_size, env.n_actions, DQNConfig(warmup_steps=1000))
+    train(env, agent, episodes=5)  # type: ignore[arg-type]
+    agent.save(tmp_path / "short.npz")
+    assert np.isfinite(agent.q_values(np.ones(4))).all()

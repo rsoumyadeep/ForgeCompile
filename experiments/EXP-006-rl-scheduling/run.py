@@ -61,6 +61,7 @@ def main() -> None:
     parser.add_argument("--max-ood", type=int, default=None)
     parser.add_argument("--step-penalty", type=float, default=0.002)
     parser.add_argument("--gamma", type=float, default=1.0)
+    parser.add_argument("--warmup", type=int, default=500, help="random steps before learning")
     parser.add_argument("--n-train", type=int, default=400)
     parser.add_argument("--n-test", type=int, default=100)
     parser.add_argument(
@@ -80,7 +81,7 @@ def main() -> None:
             "episodes": args.episodes,
             "seeds": args.seeds,
             "reward": asdict(reward),
-            "dqn": asdict(DQNConfig(gamma=args.gamma)),
+            "dqn": asdict(DQNConfig(gamma=args.gamma, warmup_steps=args.warmup)),
             "horizon": HORIZON,
             "validate_every": args.validate_every,
             "max_val": args.max_val,
@@ -96,7 +97,11 @@ def main() -> None:
         training: dict[str, dict[str, object]] = {}
         for seed in args.seeds:
             env = PassSchedulingEnv(splits["train"], HORIZON, reward, evaluator, seed=seed)
-            agent = DQNAgent(env.obs_size, env.n_actions, DQNConfig(gamma=args.gamma, seed=seed))
+            agent = DQNAgent(
+                env.obs_size,
+                env.n_actions,
+                DQNConfig(gamma=args.gamma, warmup_steps=args.warmup, seed=seed),
+            )
             checkpoint = run.run_dir / f"dqn_seed{seed}.npz"
 
             def validate(candidate: DQNAgent) -> float:

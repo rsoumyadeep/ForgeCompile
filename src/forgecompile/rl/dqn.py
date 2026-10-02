@@ -268,6 +268,10 @@ def train(
             if score < best_val and checkpoint is not None:
                 best_val = score
                 agent.save(checkpoint)
+    if agent.normalizer is None and warm_obs:
+        # Training ended inside the warm-up (very short runs): fit on what was seen,
+        # so the agent is still usable and savable.
+        agent.normalizer = Normalizer.fit(np.array(warm_obs))
     log.invalid_transformations = env.invalid_transformations
     return log
 
