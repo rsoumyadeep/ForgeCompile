@@ -1,0 +1,290 @@
+{
+  "bce": {
+    "examples": {
+      "best_cost_ratio": 1.0,
+      "geomean_cost_ratio": 1.0,
+      "geomean_static_ratio": 1.0,
+      "geomean_steps_ratio": 1.0,
+      "median_compile_ms": 0.14170000213198364,
+      "worst_cost_ratio": 1.0
+    },
+    "generated": {
+      "best_cost_ratio": 1.0,
+      "geomean_cost_ratio": 1.0,
+      "geomean_static_ratio": 1.0,
+      "geomean_steps_ratio": 1.0,
+      "median_compile_ms": 0.2743500008364208,
+      "worst_cost_ratio": 1.0
+    }
+  },
+  "constfold": {
+    "examples": {
+      "best_cost_ratio": 0.98125,
+      "geomean_cost_ratio": 0.9948178637079026,
+      "geomean_static_ratio": 0.9368737986309561,
+      "geomean_steps_ratio": 0.9878621961827222,
+      "median_compile_ms": 0.1852000023063738,
+      "worst_cost_ratio": 1.0
+    },
+    "generated": {
+      "best_cost_ratio": 0.15185185185185185,
+      "geomean_cost_ratio": 0.6268122182440816,
+      "geomean_static_ratio": 0.44569185655543886,
+      "geomean_steps_ratio": 0.5141324363676506,
+      "median_compile_ms": 0.7013499998720363,
+      "worst_cost_ratio": 0.9634146341463414
+    }
+  },
+  "copyprop": {
+    "examples": {
+      "best_cost_ratio": 0.9178479381443299,
+      "geomean_cost_ratio": 0.9555853985465413,
+      "geomean_static_ratio": 0.8363003627761765,
+      "geomean_steps_ratio": 0.8550478837552968,
+      "median_compile_ms": 0.08160000288626179,
+      "worst_cost_ratio": 0.9965438878894044
+    },
+    "generated": {
+      "best_cost_ratio": 0.8837209302325582,
+      "geomean_cost_ratio": 0.9764871748809603,
+      "geomean_static_ratio": 0.8662797212917146,
+      "geomean_steps_ratio": 0.8587237734380277,
+      "median_compile_ms": 0.22575000184588134,
+      "worst_cost_ratio": 1.0
+    }
+  },
+  "copyprop+bce": {
+    "examples": {
+      "best_cost_ratio": 0.7739656912209889,
+      "geomean_cost_ratio": 0.9179568412377881,
+      "geomean_static_ratio": 0.8136303401087895,
+      "geomean_steps_ratio": 0.8200115168701007,
+      "median_compile_ms": 0.2229999990959186,
+      "worst_cost_ratio": 0.9965438878894044
+    },
+    "generated": {
+      "best_cost_ratio": 0.8837209302325582,
+      "geomean_cost_ratio": 0.9764871748809603,
+      "geomean_static_ratio": 0.8662797212917146,
+      "geomean_steps_ratio": 0.8587237734380277,
+      "median_compile_ms": 0.5539500016311649,
+      "worst_cost_ratio": 1.0
+    }
+  },
+  "copyprop+licm": {
+    "examples": {
+      "best_cost_ratio": 0.8708375378405651,
+      "geomean_cost_ratio": 0.9447087982416009,
+      "geomean_static_ratio": 0.8363003627761765,
+      "geomean_steps_ratio": 0.8481759479223722,
+      "median_compile_ms": 0.3935999993700534,
+      "worst_cost_ratio": 0.9965438878894044
+    },
+    "generated": {
+      "best_cost_ratio": 0.6095086244383244,
+      "geomean_cost_ratio": 0.9562119230759765,
+      "geomean_static_ratio": 0.8662797212917146,
+      "geomean_steps_ratio": 0.8374566859876047,
+      "median_compile_ms": 0.8354000019608065,
+      "worst_cost_ratio": 1.8333333333333333
+    }
+  },
+  "copyprop+strength": {
+    "examples": {
+      "best_cost_ratio": 0.9132189707366297,
+      "geomean_cost_ratio": 0.9511438733766445,
+      "geomean_static_ratio": 0.8386695615635598,
+      "geomean_steps_ratio": 0.8550478837552968,
+      "median_compile_ms": 0.4017999999632593,
+      "worst_cost_ratio": 0.9965438878894044
+    },
+    "generated": {
+      "best_cost_ratio": 0.8837209302325582,
+      "geomean_cost_ratio": 0.9762955890625596,
+      "geomean_static_ratio": 0.8668214646600402,
+      "geomean_steps_ratio": 0.8588296392680603,
+      "median_compile_ms": 0.9014500010380289,
+      "worst_cost_ratio": 1.0061349693251533
+    }
+  },
+  "cse": {
+    "examples": {
+      "best_cost_ratio": 0.963673057517659,
+      "geomean_cost_ratio": 0.9899772837526399,
+      "geomean_static_ratio": 0.9890524342994912,
+      "geomean_steps_ratio": 0.9832498282861154,
+      "median_compile_ms": 0.17329999900539406,
+      "worst_cost_ratio": 1.0
+    },
+    "generated": {
+      "best_cost_ratio": 0.9296296296296296,
+      "geomean_cost_ratio": 0.9932330604236798,
+      "geomean_static_ratio": 0.973040653308254,
+      "geomean_steps_ratio": 0.9715635639220082,
+      "median_compile_ms": 0.6516500016005011,
+      "worst_cost_ratio": 1.0
+    }
+  },
+  "dce": {
+    "examples": {
+      "best_cost_ratio": 1.0,
+      "geomean_cost_ratio": 1.0,
+      "geomean_static_ratio": 0.9791228840738007,
+      "geomean_steps_ratio": 1.0,
+      "median_compile_ms": 0.08150000212481245,
+      "worst_cost_ratio": 1.0
+    },
+    "generated": {
+      "best_cost_ratio": 0.4618834080717489,
+      "geomean_cost_ratio": 0.9482339876755465,
+      "geomean_static_ratio": 0.852387786369964,
+      "geomean_steps_ratio": 0.8864404190698851,
+      "median_compile_ms": 0.24500000108673703,
+      "worst_cost_ratio": 1.0
+    }
+  },
+  "inline": {
+    "examples": {
+      "best_cost_ratio": 0.8214731585518102,
+      "geomean_cost_ratio": 0.9611953264184107,
+      "geomean_static_ratio": 1.5243293780850493,
+      "geomean_steps_ratio": 1.0,
+      "median_compile_ms": 0.14739999824087135,
+      "worst_cost_ratio": 1.0
+    },
+    "generated": {
+      "best_cost_ratio": 0.8755980861244019,
+      "geomean_cost_ratio": 0.9913944094193557,
+      "geomean_static_ratio": 1.0775518913578515,
+      "geomean_steps_ratio": 1.000708768729323,
+      "median_compile_ms": 0.10619999920891132,
+      "worst_cost_ratio": 1.012
+    }
+  },
+  "licm": {
+    "examples": {
+      "best_cost_ratio": 0.917255297679112,
+      "geomean_cost_ratio": 0.9856394856976228,
+      "geomean_static_ratio": 1.0,
+      "geomean_steps_ratio": 0.9848330763496856,
+      "median_compile_ms": 0.3329999999550637,
+      "worst_cost_ratio": 1.0
+    },
+    "generated": {
+      "best_cost_ratio": 0.6169010001449485,
+      "geomean_cost_ratio": 0.9783598319770321,
+      "geomean_static_ratio": 1.0,
+      "geomean_steps_ratio": 0.9740415513459342,
+      "median_compile_ms": 0.6175000016810372,
+      "worst_cost_ratio": 1.871212121212121
+    }
+  },
+  "preset:O1": {
+    "examples": {
+      "best_cost_ratio": 0.885631443298969,
+      "geomean_cost_ratio": 0.9419568070158492,
+      "geomean_static_ratio": 0.778909424158971,
+      "geomean_steps_ratio": 0.8285177086914115,
+      "median_compile_ms": 0.524899998708861,
+      "worst_cost_ratio": 0.9963071678818294
+    },
+    "generated": {
+      "best_cost_ratio": 0.1425925925925926,
+      "geomean_cost_ratio": 0.576003572121345,
+      "geomean_static_ratio": 0.28610797019393086,
+      "geomean_steps_ratio": 0.36016183734344503,
+      "median_compile_ms": 1.5490499972656835,
+      "worst_cost_ratio": 0.931729236121177
+    }
+  },
+  "preset:O2": {
+    "examples": {
+      "best_cost_ratio": 0.6074672048435923,
+      "geomean_cost_ratio": 0.8280458677166905,
+      "geomean_static_ratio": 1.0388224844899623,
+      "geomean_steps_ratio": 0.7365888622118246,
+      "median_compile_ms": 2.666199998202501,
+      "worst_cost_ratio": 0.996054666540416
+    },
+    "generated": {
+      "best_cost_ratio": 0.1425925925925926,
+      "geomean_cost_ratio": 0.5370721703412138,
+      "geomean_static_ratio": 0.22480777013342945,
+      "geomean_steps_ratio": 0.2943072476196055,
+      "median_compile_ms": 3.7390000015875557,
+      "worst_cost_ratio": 0.9121951219512195
+    }
+  },
+  "sccp": {
+    "examples": {
+      "best_cost_ratio": 0.98125,
+      "geomean_cost_ratio": 0.9948178637079026,
+      "geomean_static_ratio": 0.9368737986309561,
+      "geomean_steps_ratio": 0.9878621961827222,
+      "median_compile_ms": 0.4530000005615875,
+      "worst_cost_ratio": 1.0
+    },
+    "generated": {
+      "best_cost_ratio": 0.1951219512195122,
+      "geomean_cost_ratio": 0.7122586314895369,
+      "geomean_static_ratio": 0.41246553476661624,
+      "geomean_steps_ratio": 0.5463270834594292,
+      "median_compile_ms": 1.250350000191247,
+      "worst_cost_ratio": 0.9810358565737052
+    }
+  },
+  "simplify": {
+    "examples": {
+      "best_cost_ratio": 1.0,
+      "geomean_cost_ratio": 1.0,
+      "geomean_static_ratio": 1.0,
+      "geomean_steps_ratio": 1.0,
+      "median_compile_ms": 0.12729999798466451,
+      "worst_cost_ratio": 1.0
+    },
+    "generated": {
+      "best_cost_ratio": 0.5740149094781682,
+      "geomean_cost_ratio": 0.9675880821848368,
+      "geomean_static_ratio": 0.9698861393708494,
+      "geomean_steps_ratio": 0.9712145331103181,
+      "median_compile_ms": 0.6756500006304123,
+      "worst_cost_ratio": 1.0
+    }
+  },
+  "simplifycfg": {
+    "examples": {
+      "best_cost_ratio": 0.9677835051546392,
+      "geomean_cost_ratio": 0.9879210023242908,
+      "geomean_static_ratio": 0.9712435479060918,
+      "geomean_steps_ratio": 0.9755232046252833,
+      "median_compile_ms": 0.139899999339832,
+      "worst_cost_ratio": 1.0
+    },
+    "generated": {
+      "best_cost_ratio": 0.9418604651162791,
+      "geomean_cost_ratio": 0.9929410405477496,
+      "geomean_static_ratio": 0.903839319289333,
+      "geomean_steps_ratio": 0.9661649985909851,
+      "median_compile_ms": 0.2993499983858783,
+      "worst_cost_ratio": 1.0
+    }
+  },
+  "strength": {
+    "examples": {
+      "best_cost_ratio": 1.0,
+      "geomean_cost_ratio": 1.0,
+      "geomean_static_ratio": 1.0,
+      "geomean_steps_ratio": 1.0,
+      "median_compile_ms": 0.38160000258358195,
+      "worst_cost_ratio": 1.0
+    },
+    "generated": {
+      "best_cost_ratio": 1.0,
+      "geomean_cost_ratio": 1.0,
+      "geomean_static_ratio": 1.0,
+      "geomean_steps_ratio": 1.0,
+      "median_compile_ms": 0.6132500002422603,
+      "worst_cost_ratio": 1.0
+    }
+  }
+}

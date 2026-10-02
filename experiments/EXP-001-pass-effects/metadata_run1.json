@@ -1,0 +1,46 @@
+{
+  "experiment_id": "EXP-001-pass-effects",
+  "seed": 0,
+  "started_utc": "2026-10-02T12:12:55.425278+00:00",
+  "status": "running",
+  "environment": {
+    "forgecompile_version": "0.0.1",
+    "python": {
+      "version": "3.11.15",
+      "implementation": "CPython",
+      "executable": "D:\\projects-for-placements\\ForgeCompile (ML-Guided Optimizing Compiler)\\.venv\\Scripts\\python.exe"
+    },
+    "platform": {
+      "system": "Windows",
+      "release": "10",
+      "version": "10.0.21996",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 158 Stepping 10, GenuineIntel"
+    },
+    "cpu_count": 8,
+    "git": {
+      "commit": "6f130558db95018ed183b243b59837801dd14666",
+      "dirty": false
+    },
+    "tools": [
+      {
+        "name": "llvmlite",
+        "available": false,
+        "version": null,
+        "detail": "not installed (needed from Phase 5)"
+      },
+      {
+        "name": "zig",
+        "available": false,
+        "version": null,
+        "detail": "not found (pip install ziglang; needed from Phase 5)"
+      },
+      {
+        "name": "clang",
+        "available": false,
+        "version": null,
+        "detail": "not on PATH (optional; zig cc is used instead)"
+      }
+    ]
+  }
+}

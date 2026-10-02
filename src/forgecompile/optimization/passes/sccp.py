@@ -33,7 +33,8 @@ TOP, since any value is a legal choice for it.
 
 **Rewrite.**
 - Registers with a constant value are replaced by that constant, and their
-  instructions are deleted when that is safe.
+  instructions are deleted when that is safe (judged *after* substitution).
+- Bounds checks whose index became an in-range constant are deleted.
 - Branches on constants become jumps.
 - Never-executed blocks become unreachable and are deleted.
 
@@ -54,6 +55,7 @@ from forgecompile.ir.function import BasicBlock, Function, Module
 from forgecompile.ir.instructions import (
     BINARY_OPCODES,
     UNARY_OPCODES,
+    BoundsCheckInst,
     BranchInst,
     CompareInst,
     Instruction,
@@ -204,6 +206,11 @@ class SparseConditionalConstantPropagation(FunctionPass):
         for reg, value in solver.values.items():
             if isinstance(value, Constant) and reg not in fn.params:
                 subst.add(reg, value)
+        # Substitute *first*: deletion safety depends on operands being visibly
+        # constant (e.g. `sdiv %x, %d` with %d known to be 7 is safe to delete only
+        # once %d has become 7). Deciding before substituting kept dead divisions
+        # alive (docs/FAILURES.md, F-010).
+        subst.apply(fn)
         for block in fn.blocks:
             if block not in solver.executable_blocks:
                 continue
@@ -212,13 +219,16 @@ class SparseConditionalConstantPropagation(FunctionPass):
                 if is_constant and is_removable_if_unused(inst):
                     delete_instruction(inst)
                     result.stats["constants"] += 1
+                elif isinstance(inst, BoundsCheckInst) and isinstance(inst.index, Constant):
+                    if 0 <= inst.index.value < inst.length:
+                        delete_instruction(inst)
+                        result.stats["boundschecks"] += 1
             term = block.terminator
             if isinstance(term, BranchInst):
                 live = [t for t in term.targets if (block, t) in solver.executable_edges]
                 if len(live) == 1 and len(term.targets) == 2:
                     replace_terminator_with_jump(block, live[0])
                     result.stats["branches"] += 1
-        subst.apply(fn)
         removed = remove_unreachable_blocks(fn)
         result.stats["blocks_removed"] += removed
         result.changed = bool(result.stats)

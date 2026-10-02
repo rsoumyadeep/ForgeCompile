@@ -119,3 +119,20 @@ entry:
 }""", ["cse"])  # fmt: skip
     assert result.text.count("load") == 2
     assert result.after.stdout == "5\n"
+
+
+def test_sccp_deletes_dead_division_and_constant_bounds_check(opt: Opt) -> None:
+    """Regression for F-010: deletion safety must be judged after substitution."""
+    result = opt("""
+func @main() -> i64 {
+entry:
+    %d: i64 = add 3, 4
+    %q: i64 = sdiv 100, %d
+    %i: i64 = srem %q, 4
+    boundscheck %i, 4
+    print %q
+    ret 0
+}""", ["sccp"])  # fmt: skip
+    assert result.opcodes() == ["print", "ret"]
+    assert "print 14" in result.text
+    assert result.stats("sccp")["boundschecks"] == 1
