@@ -191,3 +191,43 @@ one and links back to it.
 - **Chosen:** importlib mode, with no `__init__.py` in test directories.
 - **Trade-off:** test modules cannot import each other. Shared helpers must go in
   `conftest.py` or in the package itself.
+
+## D-013 — Annotate the AST in place, and resolve names to symbol objects
+
+- **Date:** 2026-10-02 (Phase 2)
+- **Alternatives:**
+  1. Side tables keyed by `id(node)` (`types: dict[int, Type]`).
+  2. Build a separate typed AST (a new tree with types).
+  3. Annotate the existing nodes (`Expr.ty`, `Name.symbol`, ...).
+- **Chosen:** Option 3. The annotation fields are declared with `compare=False` so they do not
+  affect AST equality, and they are `None` until analysis runs.
+- **Why:**
+  - It is the simplest design that lowering can consume directly: `name.symbol` gives the
+    storage key without a lookup.
+  - Side tables keyed by object identity are fragile, because ids are reused after garbage
+    collection.
+  - A second tree type would double the node definitions.
+- **Trade-offs:** The AST is mutable, and "is this node checked?" is a run-time property, not
+  a static type. Lowering asserts that `ty`/`symbol` are not `None`.
+- **Symbol identity:** `VariableSymbol` uses identity equality (`eq=False`) plus a `uid`.
+  Two shadowed `x` variables are distinct objects. Lowering keys on the symbol (or its uid),
+  never on the name string.
+
+## D-014 — An error type to suppress cascading diagnostics
+
+- **Date:** 2026-10-02 (Phase 2)
+- **Alternatives:** stop at the first type error; report everything naively.
+- **Chosen:** A special `ERROR` type is assigned to ill-typed expressions. Every typing rule
+  accepts it without reporting anything.
+- **Why:** It reports all *independent* errors in one run without follow-on noise. This is
+  the approach used by rustc and Clang. It is verified by tests that assert *exactly one*
+  error for each single-bug program.
+
+## D-015 — Compile-time error for literal out-of-bounds indices
+
+- **Date:** 2026-10-02 (Phase 2)
+- **Context:** `a[5]` on a `[int; 3]` will always fail at run time if it is reached.
+- **Chosen:** Literal indices (including `-k`) outside `0..N` are compile-time errors. All
+  other indices are bounds-checked at run time (D-010).
+- **Trade-off:** This rejects code that is unreachable, such as `if false { a[5] = 1; }`.
+  rustc makes the same choice: a guaranteed failure is almost always a bug.

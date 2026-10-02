@@ -64,5 +64,9 @@ INT = PrimitiveType("int")
 FLOAT = PrimitiveType("float")
 BOOL = PrimitiveType("bool")
 VOID = PrimitiveType("void")
+# Assigned by the type checker to expressions that already produced an error.
+# Every rule accepts ERROR silently, so one mistake is reported once rather
+# than cascading through every enclosing expression.
+ERROR = PrimitiveType("<error>")
 
 PRIMITIVES_BY_NAME: dict[str, PrimitiveType] = {"int": INT, "float": FLOAT, "bool": BOOL}

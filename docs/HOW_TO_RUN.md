@@ -29,9 +29,11 @@ This section grows with each phase. Currently the frontend is available:
 uv run forgecompile lex examples/gcd.mini              # token stream with line:column
 uv run forgecompile parse examples/gcd.mini            # AST tree
 uv run forgecompile parse --format examples/gcd.mini   # canonical source (round-trippable)
+uv run forgecompile check examples/gcd.mini            # parse + type-check
+uv run forgecompile check --dump examples/gcd.mini     # AST annotated with types
 ```
 
-Syntax errors are printed to stderr with source excerpts, and the exit code is 1.
+Syntax and type errors are printed to stderr with source excerpts, and the exit code is 1.
 
 ## 4. Reproduce experiments
 

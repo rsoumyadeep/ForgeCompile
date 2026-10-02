@@ -50,6 +50,10 @@ select = [
     "RUF",           # ruff-specific
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# Test tables pair inputs with exact expected diagnostics; wrapping them hurts readability.
+"tests/**" = ["E501"]
+
 [tool.mypy]
 python_version = "3.11"
 files = ["src/forgecompile"]

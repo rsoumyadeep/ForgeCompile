@@ -10,7 +10,7 @@ Status legend: ✅ done · 🔨 in progress · ⏳ not started · ⚠️ done wi
 |---|-------|--------|--------|
 | 0 | Project foundation | ✅ | [PHASE_0](phases/PHASE_0.md) |
 | 1 | MiniLang frontend (lexer, parser, AST) | ✅ | [PHASE_1](phases/PHASE_1.md) |
-| 2 | Semantic analysis | ⏳ | — |
+| 2 | Semantic analysis | ✅ | [PHASE_2](phases/PHASE_2.md) |
 | 3 | IR, reference interpreter, CFG, SSA | ⏳ | — |
 | 4 | Classical optimization engine | ⏳ | — |
 | 5 | LLVM backend + native executables | ⏳ | — |
@@ -53,7 +53,7 @@ Status legend: ✅ done · 🔨 in progress · ⏳ not started · ⚠️ done wi
 - [x] The AST pretty-printer (`forgecompile parse --format`) round-trips all example
   programs, plus 1,000 random expression trees.
 
-## Phase 2 — Semantic analysis
+## Phase 2 — Semantic analysis ✅
 
 **Objective:** reject ill-formed programs with clear diagnostics and annotate the AST with
 types.
@@ -61,8 +61,12 @@ types.
 - Scoped symbol tables, name resolution, type checking (no implicit int↔float conversion), and
   function arity/return checks (including "missing return on some path").
 
-**Acceptance:** the negative test suite has at least one test per diagnostic.
-`docs/LANGUAGE.md` gains a type system section. `forgecompile check` exists.
+**Acceptance** (all met)
+- [x] The negative suite has at least one test per diagnostic (`tests/semantic/`, 116
+  tests; each single-bug program must yield *exactly one* error).
+- [x] `docs/LANGUAGE.md` §4–6 (types, typing rules, scopes) are marked as implemented.
+- [x] `forgecompile check [--dump]` exists.
+- [x] Mutation testing: 4 injected checker bugs were all caught (FAILURES F-005).
 
 ## Phase 3 — IR, reference interpreter, CFG, SSA
 

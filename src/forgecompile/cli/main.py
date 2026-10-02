@@ -8,6 +8,7 @@ Currently available:
     forgecompile info [--json]       environment + backend toolchain report
     forgecompile lex FILE            token stream
     forgecompile parse FILE          AST dump (--format: canonical source)
+    forgecompile check FILE          parse + type-check (--dump: typed AST)
 
 Exit codes: 0 success, 1 compile error (diagnostics on stderr), 2 usage error.
 """

@@ -103,3 +103,25 @@ Template:
   offsets) rather than a hard-coded order.
 - **Lesson:** When a test fails, first decide which side is wrong. Changing code to satisfy a
   wrong test would have broken the minimal-parentheses contract.
+
+## F-005 — A mutation-testing step silently did nothing
+
+- **Date / Phase:** 2026-10-02, Phase 2
+- **Attempted:** All 116 new semantic tests passed on their first run. A suite that never
+  fails may be vacuous, so I checked it by *mutation testing*: inject a bug into
+  `checker.py`, confirm that some test fails, then restore the file.
+- **Symptom:** The mutation "disable the missing-return check" reported `116 passed`, which
+  looked like a gap in the tests.
+- **Root cause:** The mutation was a text substitution, and its search string no longer
+  matched: `ruff format` had re-wrapped that line. The file was never changed, so the
+  "surviving mutant" was an artifact of the script.
+- **Fix:** The script reports `NO-CHANGE` when a substitution does not apply. I re-applied
+  the mutation against the current text, and 2 tests failed as expected. All four mutations
+  were caught:
+  - loop-variable mutability → 1 failure;
+  - missing return → 2;
+  - declaration of `let` symbols → 36;
+  - error-type cascade suppression → 3.
+- **Fix worked?:** Yes. `checker.py` was restored from a backup and verified with `git diff`.
+- **Lesson:** A test of the tests needs its own sanity check. Verify that the mutation was
+  actually applied before interpreting a "pass".

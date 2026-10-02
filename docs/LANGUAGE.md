@@ -13,9 +13,10 @@ MiniLang is a small, statically typed, imperative language. It is designed to be
 
 File extension: `.mini`.
 
-**Status:** syntax (§1–§3) is implemented in Phase 1 (`src/forgecompile/frontend/`).
-Static semantics (§4–§6) are enforced from Phase 2. Dynamic semantics (§7) are implemented
-by the interpreter (Phase 3) and the LLVM backend (Phase 5).
+**Status:** syntax (§1–§3) is implemented in Phase 1 (`src/forgecompile/frontend/`). Static
+semantics (§4–§6) are implemented in Phase 2 (`src/forgecompile/semantic/`; every rule has a
+negative test in `tests/semantic/test_semantic_errors.py`). Dynamic semantics (§7) are
+implemented by the interpreter (Phase 3) and the LLVM backend (Phase 5).
 
 ```rust
 // A complete MiniLang program.
@@ -123,7 +124,7 @@ cannot be chained"), because its C meaning, `(a < b) < c`, is almost never what 
 Examples: `-a[i]` is `-(a[i])`. `-x as float` is `(-x) as float`. `a * b as float` is
 `a * (b as float)`.
 
-## 4. Types *(enforced from Phase 2)*
+## 4. Types
 
 | Type | Values | Size |
 |------|--------|------|
@@ -143,7 +144,7 @@ passed to functions, which receive them **by reference** (the callee can modify 
 array, as `examples/bubble_sort.mini` does). Arrays cannot be assigned as a whole, returned,
 compared or printed. Parameter array types must match exactly, size included.
 
-## 5. Typing rules *(enforced from Phase 2)*
+## 5. Typing rules
 
 | Construct | Rule |
 |-----------|------|
@@ -154,7 +155,7 @@ compared or printed. Parameter array types must match exactly, size included.
 | `&& \|\| !` | `bool` operands; result `bool` |
 | unary `-` | `int` or `float` |
 | `e as T` | `e` and `T` both scalar (any of int/float/bool to any of int/float/bool) |
-| `a[i]` | `a` is an array, `i` is `int`; result is the element type |
+| `a[i]` | `a` is an array, `i` is `int`; result is the element type. A *literal* index outside `0..N` (`a[5]` on `[int; 3]`, `a[-1]`) is a compile-time error; other indices are checked at run time |
 | `[e1, ..., en]` | all elements of the same type `T`; type `[T; n]`; only allowed as a `let` initializer |
 | `f(args)` | `f` is declared; argument count and types match exactly |
 | `print(e)` | built-in; one scalar argument; returns nothing |
@@ -165,7 +166,7 @@ compared or printed. Parameter array types must match exactly, size included.
 | `return e` | type(e) equals the function's return type; `return;` only in void functions |
 | expression statement | must be a call (`1 + 2;` is an error: the result would be discarded) |
 
-## 6. Names and scopes *(enforced from Phase 2)*
+## 6. Names and scopes
 
 - Functions live in one global namespace and may be called before their definition, which
   allows mutual recursion. There is no overloading. `print` is reserved.
@@ -181,6 +182,11 @@ compared or printed. Parameter array types must match exactly, size included.
   ("missing return" is checked over all control-flow paths).
 - `break` and `continue` are only valid inside a loop.
 - `main` must exist, take no parameters, and return `int` or nothing.
+- In `let x = e;`, the variable is declared *after* `e` is checked, so `let x = x + 1;`
+  inside a block refers to an outer `x` (as in Rust).
+- The missing-return check is *conservative* (`semantic/control_flow.py`). Only `while true`
+  is recognised as an infinite loop, so `while 1 < 2 { return 1; }` at the end of a function
+  is rejected even though it always returns.
 
 ## 7. Dynamic semantics *(interpreter Phase 3, native code Phase 5)*
 

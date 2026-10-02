@@ -32,7 +32,7 @@ def wrap(body: str) -> str:
         ("let x: string = 1;", "expected a type, found identifier 'string'"),
         ("let a: [int; 0];", "array size must be positive"),
         ("let a: [int; n];", "expected integer literal for array size, found identifier 'n'"),
-        ("let a: [int 3];", "expected ';' between array element type and size, found integer literal '3'"),  # noqa: E501
+        ("let a: [int 3];", "expected ';' between array element type and size, found integer literal '3'"),
         ("f(1, 2;", "expected ')' to close the argument list, found ';'"),
         ("x = a[1;", "expected ']' to close the index, found ';'"),
         ("x = (1 + 2;", "expected ')' to close the parenthesized expression, found ';'"),

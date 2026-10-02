@@ -10,7 +10,7 @@ textbook material without a code link.
 | 2. Lexing | 1 | ✅ |
 | 3. Grammars and parsing (recursive descent, Pratt) | 1 | ✅ |
 | 4. The AST | 1 | ✅ |
-| 5. Semantic analysis: symbol tables, scopes, types | 2 | ⏳ |
+| 5. Semantic analysis: symbol tables, scopes, types | 2 | ✅ |
 | 6. Intermediate representations | 3 | ⏳ |
 | 7. Control-flow graphs and basic blocks | 3 | ⏳ |
 | 8. Dominance and SSA | 3 | ⏳ |
@@ -177,3 +177,66 @@ change is harmless for left-associative operators, but wrong for non-associative
 
 **In the code:** `src/forgecompile/ast/nodes.py`, `dump.py` (tree and S-expression views),
 `formatter.py`. Try `forgecompile parse examples/fibonacci.mini`.
+
+## 5. Semantic analysis: symbol tables, scopes and types
+
+**What the parser cannot check.** A context-free grammar cannot express "a variable must be
+declared before use" or "both operands of `+` must have the same type". Those rules depend on
+*context*: information declared somewhere else in the program. Semantic analysis is the phase
+that walks the AST carrying that context.
+
+**Symbol tables and scopes.** A *symbol* records one declaration: name, type, kind and
+location. A *scope* maps names to symbols. Scopes nest, and each scope points to its parent,
+so lookup walks outward from the innermost scope and the first match wins. That is exactly
+**shadowing**:
+
+```
+let x = 1;            // scope A: x#0 : int
+{ let x = 2.5;        // scope B (parent A): x#1 : float  -- shadows x#0
+  print(x); }         // lookup finds x#1 in B
+print(x);             // B is gone; lookup finds x#0 in A
+```
+
+Name resolution stores the *symbol object* on each `Name` node, not just the string. The two
+`x`s are different variables with different types and different `uid`s. IR lowering keys
+storage on the symbol, so shadowed variables never collide.
+
+**Type checking as a recursive function.** Each expression's type is computed from its
+children's types (a *synthesized attribute*, in attribute-grammar terms). It reads like a set
+of inference rules. For example, the rule for `+`:
+
+```
+Γ ⊢ e1 : int    Γ ⊢ e2 : int          Γ ⊢ e1 : float    Γ ⊢ e2 : float
+───────────────────────────────       ───────────────────────────────────
+     Γ ⊢ e1 + e2 : int                       Γ ⊢ e1 + e2 : float
+```
+
+Here Γ (the typing environment) is the scope chain. If no rule applies, as with
+`1 + 2.0`, the program is ill-typed. `TypeChecker._infer_binary` is a direct transcription of
+these rules.
+
+**Two passes for functions.** Pass 1 records every function signature, and pass 2 checks the
+bodies. A call can therefore refer to a function defined later in the file. This is how
+mutual recursion works without C-style prototypes.
+
+**Error recovery with an error type.** When an expression is ill-typed, the checker reports
+it once and gives the expression the special type `<error>`. Every rule silently accepts
+`<error>`, so in `(1 + true) * 2` the outer `*` does not complain about its broken left
+operand. Without this, one mistake would produce a chain of errors up the tree.
+`test_use_of_undefined_variable_does_not_cascade` checks this.
+
+**Flow-sensitive checks on the AST.** "Missing return" asks whether control can reach the end
+of a non-void function. `semantic/control_flow.py` answers this with *completes-normally*
+rules, similar to Java's (JLS §14.22):
+- a `return` never completes;
+- an `if` with an `else` completes iff either branch does;
+- `while true` completes only if it contains a `break` aimed at it.
+
+The analysis is deliberately **conservative** (sound but incomplete). Deciding the question
+exactly would require deciding whether arbitrary loop conditions terminate, which is
+undecidable in general (it reduces to the halting problem). A sound compiler therefore
+rejects some programs that would in fact always return.
+
+**In the code:** `src/forgecompile/semantic/symbols.py` (`Scope`, `VariableSymbol`),
+`checker.py` (`TypeChecker`), `control_flow.py`. Tests: `tests/semantic/` (116 tests). Try
+`forgecompile check --dump examples/newton_sqrt.mini` to see every expression's type.

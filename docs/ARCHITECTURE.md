@@ -24,11 +24,12 @@ directly from text.
 | Package | Phase | Responsibility | Status |
 |---------|-------|----------------|--------|
 | `utils/` | 0 | logging, environment capture, experiment runs | ✅ |
-| `cli/` | 0+ | `forgecompile` command; gains a subcommand per phase | ✅ (`info`, `lex`, `parse`) |
+| `cli/` | 0+ | `forgecompile` command; gains a subcommand per phase | ✅ (`info`, `lex`, `parse`, `check`) |
+| `driver.py` | 2+ | runs pipeline stages in order (`check_source`, later lowering/optimization/codegen) | ✅ |
 | `diagnostics.py` | 1 | `Span`, `SourceFile`, `Diagnostic`, `CompileError`, rustc-style rendering | ✅ |
 | `frontend/` | 1 | tokens, lexer, parser (recursive descent + Pratt, panic-mode recovery) | ✅ |
 | `ast/` | 1 | nodes, language types, operator precedence table, tree/S-expr dump, source formatter | ✅ |
-| `semantic/` | 2 | symbol tables, scopes, type checker | ⏳ |
+| `semantic/` | 2 | symbols and scopes, two-pass type checker, return-path analysis | ✅ |
 | `ir/` | 3 | IR data structures, builder, printer, parser, verifier, interpreter, lowering | ⏳ |
 | `analysis/` | 3–4 | CFG, dominators, dominance frontiers, liveness, loops | ⏳ |
 | `optimization/` | 4 | pass interface, pass manager, passes | ⏳ |
@@ -62,6 +63,20 @@ SourceFile ──tokenize()──► list[Token] + lexer diagnostics
 - `ast/operators.py` is the single precedence table, shared by the parser and the formatter.
 - The AST desugars `else if` and drops parentheses. Equality ignores spans, which is what
   makes the round-trip tests possible.
+
+## Semantic analysis (Phase 2)
+
+```
+ast.Program ──TypeChecker pass 1──► function signature table
+            ──TypeChecker pass 2──► annotated AST (Expr.ty, Name.symbol, Call.function, ...)
+                                    + ProgramInfo(functions, main)
+            (analyze() raises CompileError with every diagnostic, sorted by position)
+```
+
+- Annotations are written **in place** (DECISIONS D-013). Names resolve to `VariableSymbol`
+  objects with unique `uid`s, so shadowed variables never collide in later phases.
+- An `ERROR` type suppresses cascades (D-014).
+- `control_flow.completes_normally` handles the conservative missing-return check.
 
 ## Key design choices
 

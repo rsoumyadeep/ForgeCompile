@@ -9,6 +9,9 @@ Equality ignores source spans and semantic annotations (``compare=False``), so
 two trees parsed from differently formatted sources compare equal. The
 round-trip tests depend on this.
 
+Semantic analysis (Phase 2) annotates nodes in place: ``Expr.ty``, plus the
+resolved symbol on ``Name``, ``LetStmt``, ``ForStmt``, ``Param`` and ``Call``.
+
 ``else if`` chains are desugared at parse time: ``if a {..} else if b {..}``
 becomes ``IfStmt(a, .., else_body=Block([IfStmt(b, ..)]))``. Later phases then
 deal with a single form of ``if``.
@@ -17,10 +20,14 @@ deal with a single form of ``if``.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from forgecompile.ast.operators import BinaryOp, UnaryOp
 from forgecompile.ast.types import Type
 from forgecompile.diagnostics import Span
+
+if TYPE_CHECKING:  # annotation-only import: semantic depends on ast, not vice versa
+    from forgecompile.semantic.symbols import FunctionSymbol, VariableSymbol
 
 
 @dataclass
@@ -60,6 +67,7 @@ class ArrayLiteral(Expr):
 @dataclass
 class Name(Expr):
     ident: str
+    symbol: VariableSymbol | None = field(default=None, compare=False, repr=False, kw_only=True)
 
 
 @dataclass
@@ -79,6 +87,7 @@ class Binary(Expr):
 class Call(Expr):
     callee: str
     args: list[Expr]
+    function: FunctionSymbol | None = field(default=None, compare=False, repr=False, kw_only=True)
 
 
 @dataclass
@@ -111,6 +120,7 @@ class LetStmt(Stmt):
     name: str
     declared_type: Type | None
     init: Expr | None
+    symbol: VariableSymbol | None = field(default=None, compare=False, repr=False, kw_only=True)
 
 
 @dataclass
@@ -140,6 +150,7 @@ class ForStmt(Stmt):
     start: Expr
     end: Expr
     body: Block
+    symbol: VariableSymbol | None = field(default=None, compare=False, repr=False, kw_only=True)
 
 
 @dataclass
@@ -169,6 +180,7 @@ class ExprStmt(Stmt):
 class Param(Node):
     name: str
     type: Type
+    symbol: VariableSymbol | None = field(default=None, compare=False, repr=False, kw_only=True)
 
 
 @dataclass
@@ -177,6 +189,7 @@ class FunctionDecl(Node):
     params: list[Param]
     return_type: Type
     body: Block
+    symbol: FunctionSymbol | None = field(default=None, compare=False, repr=False, kw_only=True)
 
 
 @dataclass

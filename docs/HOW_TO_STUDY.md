@@ -12,7 +12,7 @@ misconceptions.
 | 2 | Lexing | 1 | ✅ below |
 | 3 | Parsing | 1 | ✅ below |
 | 4 | AST | 1 | ✅ below |
-| 5 | Semantic analysis | 2 | ⏳ |
+| 5 | Semantic analysis | 2 | ✅ below |
 | 6 | IR | 3 | ⏳ |
 | 7 | CFG | 3 | ⏳ |
 | 8 | SSA | 3 | ⏳ |
@@ -144,3 +144,46 @@ nodes. Why node equality ignores spans. The round-trip property. See
 
 **Common misconceptions.** "An AST must keep parentheses to remember grouping." It does not:
 the grouping is the tree shape.
+
+## 5. Semantic analysis
+
+**What you need to know.**
+- Why some rules cannot be in the grammar (context-sensitivity).
+- Symbols and scopes, and lookup that walks outward (shadowing).
+- Why names are resolved to symbol *objects*.
+- Type rules as inference rules.
+- Two-pass checking for forward references.
+- The error type for cascade suppression.
+- Conservative return-path analysis, and why it must be conservative.
+
+See [THEORY §5](THEORY.md#5-semantic-analysis-symbol-tables-scopes-and-types).
+
+**Where in the code.** `semantic/checker.py` (`TypeChecker.check_program`,
+`_collect_signatures`, `_check_let`, `_infer_binary`, `_infer_call`), `semantic/symbols.py`,
+`semantic/control_flow.py`, `driver.py` (`check_source`).
+
+**Key rule (typing judgement).** `Γ ⊢ e : T` means "in environment Γ, expression e has type
+T". Each `_infer_*` method implements the rules for one expression form.
+
+**Example.** `forgecompile check --dump examples/matmul.mini`. Note the `: float` and `: int`
+annotations, and that `(i == j) as float` is `bool → float`.
+
+**Likely interview questions**
+- *How do you handle shadowing?* A chain of scope dicts. Each declaration gets a unique
+  `VariableSymbol`. Uses are resolved to the symbol object, not the name.
+- *How do you support calling a function before its definition?* Two passes: signatures
+  first, then bodies.
+- *Why does `let x = x + 1;` work?* The new symbol is declared *after* its initializer is
+  checked, so the initializer's `x` is the outer one.
+- *How do you avoid 20 errors from one typo?* The `<error>` type, which every rule accepts.
+- *Is your missing-return check exact?* No. It is conservative, because exactness is
+  undecidable. It recognises `while true` as infinite but not `while 1 < 2`.
+- *Why no implicit int→float conversion?* It keeps the type rules trivial, and makes every
+  conversion an explicit instruction in the IR, which matters for optimization and cost
+  modelling (DECISIONS D-010, LANGUAGE.md §4).
+
+**Common misconceptions.**
+- "Type checking needs a separate pass per rule." One recursive walk computes types and
+  enforces every rule.
+- "Symbol tables are global dictionaries." Variables are scoped. Only functions are global
+  here.
