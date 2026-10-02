@@ -1,0 +1,28 @@
+// matrix_stencil -- matrix-style: 2-D five-point Jacobi stencil on a grid,
+// ping-ponging between two arrays. Exercises: index arithmetic (i-1, j+1 are not
+// plain IVs, so their bounds checks stay), cse of row offsets, licm.
+fn step(src: [[float; 48]; 48], dst: [[float; 48]; 48]) {
+    for i in 1..47 {
+        for j in 1..47 {
+            dst[i][j] = 0.2 * (src[i][j] + src[i - 1][j] + src[i + 1][j] + src[i][j - 1] + src[i][j + 1]);
+        }
+    }
+}
+
+fn main() -> int {
+    let reps = 2; // @size small=1 large=60000
+    let u: [[float; 48]; 48];
+    let v: [[float; 48]; 48];
+    for i in 0..48 {
+        for j in 0..48 {
+            u[i][j] = ((i * j) % 7) as float;
+        }
+    }
+    for r in 0..reps {
+        step(u, v);
+        step(v, u);
+    }
+    print(u[24][24]);
+    print(u[10][37]);
+    return 0;
+}

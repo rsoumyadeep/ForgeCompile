@@ -1,0 +1,23 @@
+// vector_saxpy -- vector-style: element-wise float operations over arrays
+// (y = a*x + y, then a dot product), repeated. Exercises: bce on a[i], licm.
+fn main() -> int {
+    let reps = 5; // @size small=1 large=80000
+    let x: [float; 2048];
+    let y: [float; 2048];
+    for i in 0..2048 {
+        x[i] = (i % 17) as float * 0.25;
+        y[i] = (i % 5) as float;
+    }
+    let a = 1.0001;
+    let dot = 0.0;
+    for r in 0..reps {
+        for i in 0..2048 {
+            y[i] = a * x[i] + y[i] * 0.5;
+        }
+        for i in 0..2048 {
+            dot = dot + x[i] * y[i];
+        }
+    }
+    print(dot);
+    return 0;
+}

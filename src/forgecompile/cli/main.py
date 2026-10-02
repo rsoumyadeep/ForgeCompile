@@ -15,6 +15,7 @@ Currently available:
     forgecompile run FILE            execute (--engine ir|ir-nossa|ast|native, -O/--passes)
     forgecompile llvm FILE           LLVM IR (--llvm-opt N: after LLVM's own optimizer)
     forgecompile build FILE -o EXE   native executable via zig cc (--llvm-opt N)
+    forgecompile bench               benchmark suite (correctness-checked, recorded run)
 
 Exit codes: 0 success, 1 compile error (diagnostics on stderr), 2 usage error.
 `run` exits with the program's own exit status (101 on a MiniLang runtime error).
@@ -28,7 +29,7 @@ import sys
 from collections.abc import Sequence
 
 from forgecompile import __version__
-from forgecompile.cli import backend_commands, frontend_commands, ir_commands
+from forgecompile.cli import backend_commands, bench_commands, frontend_commands, ir_commands
 from forgecompile.cli.common import EXIT_COMPILE_ERROR, EXIT_OK, EXIT_USAGE, CliError
 from forgecompile.utils.environment import collect_environment
 from forgecompile.utils.logging import configure_logging
@@ -79,6 +80,7 @@ def build_parser() -> argparse.ArgumentParser:
     frontend_commands.register(subparsers)
     ir_commands.register(subparsers)
     backend_commands.register(subparsers)
+    bench_commands.register(subparsers)
     return parser
 
 

@@ -1,0 +1,20 @@
+// loop_nest -- loop-heavy: a triple loop nest with loop-invariant arithmetic and
+// induction-variable multiplies. Exercises: licm, strength, copyprop.
+fn main() -> int {
+    let reps = 2; // @size small=1 large=5000
+    let n = 37;
+    let m = 11;
+    let total = 0;
+    for r in 0..reps {
+        for i in 0..40 {
+            for j in 0..40 {
+                for k in 0..40 {
+                    total = total + i * n * 3 + j * m + k * 5 + (n * m - 7);
+                }
+            }
+        }
+        total = total % 1000000007;
+    }
+    print(total);
+    return 0;
+}

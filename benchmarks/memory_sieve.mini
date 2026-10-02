@@ -1,0 +1,24 @@
+// memory_sieve -- memory-heavy: sieve of Eratosthenes over a bool array,
+// repeated. Exercises: bounds checks in loops (bce only covers a[i] with the
+// IV itself), memzero at the declaration site inside a loop.
+fn main() -> int {
+    let reps = 2; // @size small=1 large=10000
+    let total = 0;
+    for r in 0..reps {
+        let composite: [bool; 8192];
+        let count = 0;
+        for i in 2..8192 {
+            if !composite[i] {
+                count = count + 1;
+                let j = i * i;
+                while j < 8192 {
+                    composite[j] = true;
+                    j = j + i;
+                }
+            }
+        }
+        total = total + count;
+    }
+    print(total);
+    return 0;
+}

@@ -1,0 +1,35 @@
+// memory_sort -- memory-heavy: insertion sort of a pseudo-random int array
+// (data-dependent loads/stores), repeated. Exercises: bounds checks on
+// non-IV indices, copyprop/dce in tight loops.
+fn fill(a: [int; 256], seed: int) {
+    let x = seed;
+    for i in 0..256 {
+        x = (x * 1103 + 12345) % 65536;
+        a[i] = x % 1000;
+    }
+}
+
+fn sort(a: [int; 256]) {
+    for i in 1..256 {
+        let key = a[i];
+        let j = i - 1;
+        while j >= 0 && a[j] > key {
+            a[j + 1] = a[j];
+            j = j - 1;
+        }
+        a[j + 1] = key;
+    }
+}
+
+fn main() -> int {
+    let reps = 2; // @size small=1 large=18000
+    let data: [int; 256];
+    let checksum = 0;
+    for r in 0..reps {
+        fill(data, r + 1);
+        sort(data);
+        checksum = (checksum + data[0] + data[128] * 3 + data[255] * 7) % 1000003;
+    }
+    print(checksum);
+    return 0;
+}

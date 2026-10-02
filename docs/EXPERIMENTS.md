@@ -139,3 +139,53 @@ Rules:
     rankings may not transfer.
   - The LICM downside and the copyprop→bce dependency are concrete targets for ML/RL
     scheduling (Phases 7–9).
+
+## EXP-002 — Does the interpreter cost model predict native speedups?
+
+- **Date:** 2026-10-02 (pre-registered before the run)
+- **Objective:** Validate (or refute) DECISIONS D-006. The ML/RL phases want a cheap,
+  deterministic reward. Is the IR-interpreter cost a usable proxy for native runtime?
+- **Hypotheses** (stated before the run):
+  - H1: The predicted cost ratio and the measured native ratio are positively rank-correlated
+    across (benchmark, pipeline) pairs (pooled Spearman > 0.5).
+  - H2: Weighted cost predicts better than raw dynamic instruction count.
+  - H3: Correlation is weaker for passes whose savings are cheap natively (`strength`,
+    `inline`), where the assumed weights exaggerate them.
+- **Configuration:** `experiments/EXP-002-cost-model/run.py --repeats 5 --seed 0`.
+  - 13 pipelines (O0, O1, O2, and single passes, with copyprop prepended for passes that need
+    canonical IR), all at LLVM -O0 (D-028).
+  - 10 benchmarks (`benchmarks/*.mini`).
+  - Small instance for the interpreter, large instance for native timing.
+- **Method:**
+  - The runner's correctness gate checks native vs interpreter output.
+  - One warm-up run, then 5 interleaved timed runs per configuration.
+  - Ratios are taken against O0 per benchmark. Spearman and Pearson correlation are computed
+    pooled and per benchmark.
+- **Baseline:** perfect prediction would give Spearman = 1. No predictive power gives ≈ 0.
+- **Metrics:** Spearman and Pearson correlation; per-point predicted vs measured ratios; CV of
+  the timings.
+- **Threats to validity:**
+  - Laptop timing noise (CV is reported per point).
+  - The ratios assume per-repetition work is size-independent. Only the repetition count
+    differs between the small and large instances.
+  - LLVM -O0 code generation (stack-heavy) differs from optimized code.
+- **Results / interpretation:** below, after the run.
+
+## EXP-003 — ForgeCompile pipelines vs LLVM's optimizer, and reproducibility
+
+- **Date:** 2026-10-02 (pre-registered before the run)
+- **Objective:** Measure, natively:
+  1. what ForgeCompile's presets achieve on their own (LLVM -O0);
+  2. what LLVM -O2 achieves;
+  3. whether ForgeCompile O2 adds anything on top of LLVM -O2;
+  4. the run-to-run noise band (acceptance criterion of Phase 6).
+- **Hypotheses:**
+  - H1: LLVM -O2 is much faster than any ForgeCompile pipeline at LLVM -O0, because LLVM adds
+    register allocation quality, instruction selection and vectorization that ForgeCompile
+    does not attempt.
+  - H2: fc-O2 at LLVM -O0 is faster than fc-O0 at LLVM -O0 on most benchmarks.
+  - H3: fc-O2 + LLVM -O2 ≈ fc-O0 + LLVM -O2. LLVM redoes the same classical optimizations.
+  - H4: Two runs agree within about 5% median relative difference.
+- **Configuration:** `experiments/EXP-003-fc-vs-llvm/run.py --repeats 7 --seeds 0 1`
+  (5 configurations, 10 benchmarks, 2 full runs).
+- **Results / interpretation:** below, after the run.

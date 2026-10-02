@@ -1,0 +1,36 @@
+// matrix_matmul -- matrix-style: dense float matrix multiplication with 2-D
+// arrays (flattened row-major indexing), repeated. Exercises: strength (i*C),
+// licm (row offsets), bce (per-dimension checks), cse.
+fn matmul(a: [[float; 40]; 40], b: [[float; 40]; 40], c: [[float; 40]; 40]) {
+    for i in 0..40 {
+        for j in 0..40 {
+            let sum = 0.0;
+            for k in 0..40 {
+                sum = sum + a[i][k] * b[k][j];
+            }
+            c[i][j] = sum;
+        }
+    }
+}
+
+fn main() -> int {
+    let reps = 1; // @size small=1 large=5000
+    let a: [[float; 40]; 40];
+    let b: [[float; 40]; 40];
+    let c: [[float; 40]; 40];
+    for i in 0..40 {
+        for j in 0..40 {
+            a[i][j] = ((i * 7 + j * 3) % 11) as float * 0.5;
+            b[i][j] = ((i * 5 + j * 2) % 13) as float * 0.25;
+        }
+    }
+    let trace = 0.0;
+    for r in 0..reps {
+        matmul(a, b, c);
+        for i in 0..40 {
+            trace = trace + c[i][i];
+        }
+    }
+    print(trace);
+    return 0;
+}

@@ -1,0 +1,15 @@
+// arith_hash -- arithmetic-heavy: integer mixing with multiply, add and constant
+// division/remainder. Exercises: constant folding, strength-related identities,
+// division by constants (plain sdiv/srem in the backend).
+fn main() -> int {
+    let reps = 10; // @size small=1 large=4000
+    let h = 7;
+    for r in 0..reps {
+        for i in 0..10000 {
+            h = (h * 31 + i * 7 + 13) % 1000003;
+            h = h + (h / 7) * 3 - h % 11;
+        }
+    }
+    print(h);
+    return 0;
+}

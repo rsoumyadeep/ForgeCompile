@@ -1,0 +1,33 @@
+// call_helpers -- call-heavy: small non-recursive helpers called from a hot
+// loop. Exercises: inline (then constant propagation and CSE across the old
+// call boundary).
+fn square(x: int) -> int {
+    return x * x;
+}
+
+fn clamp(x: int, lo: int, hi: int) -> int {
+    if x < lo {
+        return lo;
+    }
+    if x > hi {
+        return hi;
+    }
+    return x;
+}
+
+fn mix(a: int, b: int) -> int {
+    return (a * 3 + b * 5) % 10007;
+}
+
+fn main() -> int {
+    let reps = 10; // @size small=1 large=16000
+    let acc = 0;
+    for r in 0..reps {
+        for i in 0..5000 {
+            let s = square(i % 100);
+            acc = mix(acc, clamp(s, 10, 5000));
+        }
+    }
+    print(acc);
+    return 0;
+}
