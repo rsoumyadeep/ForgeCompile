@@ -384,5 +384,47 @@ it.
 **Common misconceptions.**
 - "`-O0` means LLVM does nothing." It still selects instructions and allocates registers.
   It does not run IR optimization passes.
-- "Native timing of small programs measures code quality." Here it mostly measures process
-  startup (50–90 ms).
+- "Native timing of small programs measures code quality." It mostly measures process
+  startup: about 5 ms warm, but 50–90 ms on the first run of a new executable (F-014).
+
+## 12. Benchmarking
+
+**What you need to know.**
+- Why timings are noisy, and the protocol that tames them: correctness gate, warm-up,
+  interleaving, median/min/CV, two-run noise band.
+- Why the geometric mean is used for speedups.
+- Deterministic proxies (interpreter cost) vs ground truth (native time).
+- The two-size design.
+- What `.text` bytes measure.
+
+See [THEORY §12](THEORY.md#12-measuring-performance) and
+[benchmarks/README.md](../benchmarks/README.md).
+
+**Where in the code.** `benchmarking/runner.py` (`run_suite`, `_time_large_instance`,
+`_check_small_instance`), `benchmarking/measure.py`, `benchmarking/report.py`,
+`benchmarking/stats.py`.
+
+**Key equations.**
+- Speedup = median(baseline) / median(config).
+- Aggregate = geometric mean (∏ sᵢ)^(1/n).
+- CV = σ/μ.
+- Spearman ρ = Pearson correlation of ranks.
+
+**Likely interview questions**
+- *How do you make benchmark results trustworthy?* Check correctness first, warm up,
+  interleave configurations, use robust statistics, report noise, and repeat whole runs to get
+  a noise band. Never claim effects inside that band.
+- *Why the geometric mean?* Speedups are ratios. An arithmetic mean of ratios is biased, and the
+  result depends on which configuration is chosen as the baseline.
+- *Is your interpreter cost model valid?* That is exactly what EXP-002 measures. Quote the
+  measured correlation, not an assumption.
+- *Why time at LLVM -O0?* To isolate ForgeCompile's effects (D-028). LLVM -O2 numbers are
+  reported separately as a baseline.
+- *What surprised you?* The first-run penalty of new executables (F-014), and LLVM -O2 turning
+  `loop_nest` into a closed-form formula.
+
+**Common misconceptions.**
+- "More repetitions remove all noise." They reduce random noise but not systematic bias. That
+  is what interleaving is for.
+- "The minimum is always the right statistic." It estimates intrinsic cost but hides real
+  variability, which is why both the minimum and the median are reported.

@@ -10,6 +10,8 @@ authors = [{ name = "rsoumyadeep", email = "sdroy.csa.iisc@gmail.com" }]
 # (see docs/DECISIONS.md, D-007).
 dependencies = [
     "llvmlite>=0.44",
+    "numpy>=1.26",
+    "scikit-learn>=1.4",
     "ziglang>=0.13",
 ]
 
@@ -67,5 +69,5 @@ no_implicit_optional = true
 
 [[tool.mypy.overrides]]
 # Third-party packages without type information.
-module = ["llvmlite.*", "ziglang.*"]
+module = ["llvmlite.*", "ziglang.*", "sklearn.*"]
 ignore_missing_imports = true

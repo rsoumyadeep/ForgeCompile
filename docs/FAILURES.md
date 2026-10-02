@@ -277,3 +277,40 @@ Template:
   `\n` only.
 - **Lesson:** "Observable behaviour" includes the bytes a user sees at the terminal, not just
   the strings compared inside the test suite.
+
+## F-014 — I misattributed first-run cost to "process startup"
+
+- **Date / Phase:** 2026-10-02, Phases 5→6
+- **What happened:** In Phase 5 I wrote (in LLVM_BACKEND.md, HOW_TO_STUDY.md and the
+  Phase 5 report) that native process startup costs "about 50–90 ms". Those times came from
+  running each executable *once, right after building it*.
+- **Discovery:** Benchmark calibration, which does a warm-up run before timing, measured
+  `call_fib` (40 repetitions) at **6 ms total**. The runner's startup baseline (empty program,
+  warm) gives about **5 ms**.
+- **Root cause:** The first execution of a newly created executable on Windows is much slower.
+  The likely cause is the antivirus scanning new binaries; I did not instrument the OS to
+  confirm it. Either way it is a one-time cost, not process startup.
+- **Fix:** The living docs now state warm startup as about 5 ms and explain the first-run
+  effect. The Phase 5 report has a dated correction note rather than a silent edit. The
+  benchmark protocol always includes a warm-up run (D-032).
+- **Lesson:** "Startup" is a measurement with its own conditions. Measure what you claim under
+  the conditions of the claim, and keep corrections visible.
+
+## F-015 — Laptop benchmark run killed under memory pressure (EXP-002, first attempt)
+
+- **Date / Phase:** 2026-10-02, Phase 6
+- **What happened:** EXP-002 (13 pipelines × 10 benchmarks, native timing) ran on the laptop
+  in the background. During benchmark 8/10 (`memory_sieve`), Claude Code stopped the job
+  because the *system* was critically low on memory (16 GB laptop, other applications open).
+  The queued EXP-003 never started.
+- **Evidence status:** The script writes results only at the end, so no results exist. The run
+  directory `experiments/runs/EXP-002-cost-model_20261002T130843234531Z/` is preserved, marked
+  `aborted` with this cause, and **not used as evidence**.
+- **Fixes:**
+  1. Expensive experiments now run on the server (D-034).
+  2. Resource checks and tmux launching are scripted (`scripts/resources.py`,
+     `scripts/server/launch.sh`).
+  3. Every experiment gets a `--sanity` mode for a tiny verification run first.
+  4. Runs are marked failed or aborted automatically (D-035).
+- **Lesson:** "It runs on my machine" is not a resource plan. Long experiments need an explicit
+  budget, a robust session, and incremental or explicitly failed state.

@@ -123,9 +123,11 @@ change the output, and that test would catch it.
 
 ## 6. Limitations
 
-- Native timing for tiny programs is dominated by **process startup** (about 50–90 ms on the
-  development laptop). The examples are far too small to measure generated-code speed.
-  Phase 6 benchmarks must run long enough for computation to dominate.
+- Tiny programs cannot measure generated-code speed. A *warm* process start costs about
+  5 ms on the development laptop (measured by `forgecompile bench`). The *first* run of a
+  freshly built executable took 50–90 ms, most likely because Windows scans new binaries
+  on first execution (FAILURES F-014). The benchmark runner therefore always does a
+  warm-up run, and Phase 6 sizes kernels so computation dominates.
 - No debug info, and no separate compilation or linking of multiple MiniLang files.
 - 64-bit x86 Windows is tested. Linux is supported by the same code path (zig/clang + glibc),
   and CI runs on Ubuntu, but it has not been run locally.

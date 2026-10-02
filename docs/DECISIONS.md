@@ -449,3 +449,74 @@ one and links back to it.
 - **Why:** The oracle must handle what native code and the IR interpreter handle. An explicit
   stack (as in the IR interpreter) would make the reference interpreter much less readable.
 - **Platform note:** CPython on Windows rejects thread stacks ≥ 256 MiB.
+
+## D-031 — Two instance sizes per benchmark (interpreter-small, native-large)
+
+- **Date:** 2026-10-02 (Phase 6)
+- **Context:** The IR interpreter runs about 10⁶ IR instructions per second. Native runs need
+  about 10⁸–10⁹ to dominate process startup and timer noise. A single size cannot serve both.
+- **Alternatives:**
+  - measure only natively (no deterministic signal);
+  - measure only the interpreter (no ground truth);
+  - JIT the interpreter (a big project).
+- **Chosen:** One `// @size small=N large=M` annotation per benchmark, rewriting only the
+  repetition count. The *ratios* between configurations are compared across sizes.
+- **Trade-off:** This assumes per-repetition work is independent of the repetition count. That
+  is true by construction, except for constant setup code, which the small instance amplifies
+  a little.
+
+## D-032 — Timing protocol: correctness gate, warm-up, interleaved seeded order, medians
+
+- **Date:** 2026-10-02 (Phase 6)
+- **Chosen:**
+  - Before timing, check every configuration's output.
+  - One warm-up run, then `repeats` rounds with a freshly shuffled (seeded) order.
+  - Report the median, minimum, IQR and CV, plus the startup baseline.
+- **Why:** Each element addresses a measured or well-known problem:
+  - first-run antivirus cost (F-014);
+  - drift bias from running configurations in blocks;
+  - outliers;
+  - silently benchmarking a miscompiled program.
+- **Trade-off:** Longer runs, since every configuration pays for its warm-up and repeats.
+
+## D-033 — Code size measured as `.text` bytes of the module object (via llvmlite)
+
+- **Date:** 2026-10-02 (Phase 6)
+- **Alternatives:** executable size; IR instruction count only.
+- **Chosen:** Emit an object file for the LLVM module at the configuration's LLVM optimization
+  level and sum the executable-code sections (`is_text()`).
+- **Why:** Executable size is dominated by libc and the runtime, which are identical for every
+  configuration. IR size is reported too, but machine-code size is what actually ships.
+
+## D-034 — Server-first execution; GitHub is the canonical repository (supersedes D-005)
+
+- **Date:** 2026-10-02 (Phase 6→7)
+- **Context:**
+  - D-005 kept all work on the laptop and did not use the server without authorization.
+  - The project owner has now explicitly asked for server-first execution.
+  - A laptop benchmark run was killed under critical memory pressure (F-015).
+- **Chosen:**
+  - **Workflow:** laptop (development) → git → GitHub (`rsoumyadeep/ForgeCompile`, canonical) →
+    server clone/pull → experiments → curated results committed → GitHub → laptop pull.
+    The server filesystem is never the source of truth.
+  - **Server** (a shared lab machine): 64 hardware threads, 503 GB RAM, 2× RTX A6000 (shared with other
+    users), Ubuntu 22.04, `/data` 96% full. An isolated uv environment
+    (`~/ForgeCompile/.venv`, Python 3.11.16, `uv sync --locked`) is used, touching no other
+    project.
+  - **Access:** a dedicated key (`forgecompile-laptop-key`), installed once using the
+    provided password. The password is never stored in the repository or printed.
+  - **GPUs are not used.** The models (scikit-learn, NumPy DQN) are CPU-only by design (D-007).
+- **Resource policy, enforced in code:**
+  - `scripts/resources.py` checks free RAM, load, GPUs and busy processes, and recommends at
+    most half the idle CPUs and 25% of free RAM.
+  - `scripts/server/launch.sh` refuses duplicates, dirty trees and low memory, and runs jobs in
+    tmux with continuous logs in `~/forge_logs/`.
+  - Experiments run sequentially, never several heavy ones at once. Each starts with a tiny
+    `--sanity` run (separate experiment id, no curated output), then medium, then full.
+
+## D-035 — Experiment runs fail loudly and stay on disk
+
+- **Date:** 2026-10-02
+- **Chosen:** `ExperimentRun` is a context manager. Any exception inside `with run:` marks the
+  run `failed`, with the error, and preserves its directory. Runs killed externally are marked
+  `aborted` by hand, with the cause. Neither is ever used as evidence.

@@ -32,6 +32,8 @@ htmlcov/
 # experiments/<EXP-ID>/ and docs/RESULTS.md explicitly.
 experiments/runs/*
 !experiments/runs/.gitkeep
+# Generated ML/RL datasets: reproducible from their config + git commit (ml/data_pipeline.py).
+experiments/data/
 
 # --- Editors / OS -------------------------------------------------------------
 .vscode/

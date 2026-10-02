@@ -446,3 +446,54 @@ on the same input (`--llvm-opt 2`).
 **In the code:** `backend/llvm_emitter.py` (translation table in its docstring),
 `backend/runtime/fc_runtime.c`, `backend/native.py`; see [LLVM_BACKEND.md](LLVM_BACKEND.md).
 Try `forgecompile llvm examples/gcd.mini` and then `--llvm-opt 2`.
+
+## 12. Measuring performance
+
+**Why measurement is hard.** A wall-clock time is the program's work *plus* everything else:
+- process creation;
+- the OS scheduler;
+- CPU frequency changes (turbo, thermal throttling);
+- caches;
+- other processes;
+- on Windows, a possible antivirus scan of a newly built executable.
+
+A single number therefore means little. The questions are always "compared with what?" and
+"how noisy?".
+
+**Protocol used here** (`benchmarking/runner.py`):
+1. **Correctness before speed.** Each configuration's output must match the reference before
+   it is timed. A fast wrong program is not a result.
+2. **Warm-up.** One untimed run per executable. This matters a lot here: the first run of a
+   fresh executable took 50–90 ms, against about 5 ms warm (F-014).
+3. **Interleaving.** Each repetition round runs all configurations of a benchmark in a new
+   random (seeded) order. Slow drifts (heating, background jobs) then hit every configuration
+   equally, instead of systematically penalizing the last one.
+4. **Robust statistics.**
+   - The **median** is robust to occasional outliers. The **minimum** is a lower bound on
+     intrinsic run time, since noise only adds.
+   - The **coefficient of variation** (CV = σ/μ) is reported for every measurement.
+   - Speedups are ratios of medians, aggregated with the **geometric mean**. That is the only
+     mean that makes "2× faster on A and 2× slower on B" average to 1×.
+5. **Reproducibility.** A whole suite is run twice with different seeds. The spread of the
+   medians between runs is the empirical *noise band*, and effects smaller than that are not
+   claimed (EXP-003).
+6. **Startup baseline.** An empty program is timed with the same protocol, so the fixed cost
+   is visible.
+
+**Deterministic proxies.** Counting executed IR instructions (with or without per-opcode weights)
+is exact and repeatable, but it is only a *model* of time. Whether that model predicts native
+speedups is an empirical question, and EXP-002 measures it with rank correlation (Spearman) and
+linear correlation (Pearson). That matters because ML/RL rewards built on a bad proxy would
+optimize the wrong thing.
+
+**Two sizes of the same benchmark.** The Python interpreter is about 1,000× slower than native
+code. Each benchmark therefore has a small instance (interpreter) and a large one (native) that
+differ only in repetition count, so the *relative* effect of an optimization is comparable
+across the two.
+
+**Code size.** The `.text` bytes of the LLVM object file for the module, which excludes libc
+and the runtime. Executable size would be dominated by the C library.
+
+**In the code:** `src/forgecompile/benchmarking/` (`suite.py`, `measure.py`, `runner.py`,
+`report.py`, `stats.py`), `benchmarks/`, `experiments/EXP-002-cost-model/`,
+`experiments/EXP-003-fc-vs-llvm/`.

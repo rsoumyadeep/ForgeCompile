@@ -83,3 +83,11 @@ def test_run_log_is_written(tmp_path: Path) -> None:
 def test_invalid_experiment_id_rejected(tmp_path: Path, bad_id: str) -> None:
     with pytest.raises(ValueError, match="invalid experiment id"):
         ExperimentRun.create(bad_id, {}, seed=0, runs_dir=tmp_path)
+
+
+def test_context_manager_marks_failed_runs(tmp_path: Path) -> None:
+    run = ExperimentRun.create("EXP-000", {}, seed=0, runs_dir=tmp_path)
+    with pytest.raises(ValueError), run:
+        raise ValueError("boom")
+    metadata = _read(run.run_dir / "metadata.json")
+    assert metadata["status"] == "failed" and "boom" in metadata["summary"]["error"]

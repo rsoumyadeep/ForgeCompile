@@ -55,7 +55,9 @@ No formal experiment. A pre-implementation **compatibility check**: the C librar
 mismatches. It decided the runtime design (LLVM_BACKEND.md §3).
 
 ## Results
-No performance results. Native run times of the examples (50–90 ms) are dominated by process
+No performance results. *(Correction added in Phase 6: the 50–90 ms below was measured on the
+first run of freshly built executables. Warm startup is about 5 ms. See FAILURES F-014.)*
+Native run times of the examples (50–90 ms) are dominated by process
 startup and are **not** reported as results.
 
 ## Important decisions

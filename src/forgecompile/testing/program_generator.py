@@ -52,6 +52,20 @@ class GeneratorConfig:
     max_loop_depth: int = 2
     max_loop_bound: int = 6
     trap_probability: float = 0.02
+    # Cumulative thresholds for one uniform draw choosing the next statement kind:
+    # let, array let, assignment, print, if, for, while, break/continue (rest: print
+    # of an expression). The defaults reproduce the original generator exactly.
+    statement_thresholds: tuple[float, ...] = (0.22, 0.30, 0.45, 0.60, 0.70, 0.80, 0.86, 0.90)
+
+
+# Training-workload profile for the ML/RL phases: more and deeper loops and fewer
+# straight-line constant expressions (EXP-001 found the default constant-heavy).
+LOOP_HEAVY = GeneratorConfig(
+    max_statements=7,
+    max_loop_depth=3,
+    max_loop_bound=6,
+    statement_thresholds=(0.15, 0.25, 0.37, 0.45, 0.52, 0.74, 0.85, 0.88),
+)
 
 
 @dataclass
@@ -256,24 +270,27 @@ class ProgramGenerator:
 
     def statement(self) -> ast.Stmt:
         depth = self.config.max_expr_depth
+        t_let, t_array, t_assign, t_print, t_if, t_for, t_while, t_jump = (
+            self.config.statement_thresholds
+        )
         roll = self.rng.random()
-        if roll < 0.22:
+        if roll < t_let:
             return self.let_scalar()
-        if roll < 0.30:
+        if roll < t_array:
             return self.let_array()
-        if roll < 0.45:
+        if roll < t_assign:
             assign = self.assignment()
             if assign is not None:
                 return assign
-        if roll < 0.60:
+        if roll < t_print:
             return self.print_stmt()
-        if roll < 0.70:
+        if roll < t_if:
             return self.if_stmt()
-        if roll < 0.80 and self.loop_depth < self.config.max_loop_depth:
+        if roll < t_for and self.loop_depth < self.config.max_loop_depth:
             return self.for_stmt()
-        if roll < 0.86 and self.loop_depth < self.config.max_loop_depth:
+        if roll < t_while and self.loop_depth < self.config.max_loop_depth:
             return self.while_stmt()
-        if roll < 0.90 and self.in_loop:
+        if roll < t_jump and self.in_loop:
             return ast.BreakStmt(span=_SPAN) if self.chance(0.5) else ast.ContinueStmt(span=_SPAN)
         return ast.ExprStmt(
             ast.Call("print", [self.expr(self.rng.choice([INT, FLOAT, BOOL]), depth)], span=_SPAN),

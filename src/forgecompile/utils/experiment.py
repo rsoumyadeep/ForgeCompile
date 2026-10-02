@@ -109,5 +109,13 @@ class ExperimentRun:
             self.metadata["summary"] = summary
         self._write_metadata()
 
+    def __enter__(self) -> ExperimentRun:
+        return self
+
+    def __exit__(self, exc_type: object, exc: BaseException | None, tb: object) -> None:
+        """Inside ``with run:``, an exception marks the run failed (directory preserved)."""
+        if exc is not None and self.metadata.get("status") == "running":
+            self.finalize("failed", {"error": repr(exc)})
+
     def _write_metadata(self) -> None:
         _write_json(self.run_dir / "metadata.json", self.metadata)
