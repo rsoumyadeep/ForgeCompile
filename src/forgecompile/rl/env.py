@@ -33,6 +33,7 @@ Costs are memoized by IR hash, shared across episodes (``CostEvaluator``).
 
 from __future__ import annotations
 
+import hashlib
 import random
 from dataclasses import dataclass, field
 from typing import Any
@@ -42,6 +43,7 @@ import numpy as np
 from forgecompile.driver import build_ir
 from forgecompile.ir.function import Module
 from forgecompile.ir.interpreter import run_module
+from forgecompile.ir.printer import format_module
 from forgecompile.ml.dataset import (
     ACTIONS,
     STOP,
@@ -102,6 +104,7 @@ class PassSchedulingEnv:
         self.obs_size = len(FEATURE_NAMES) + 1 + self.n_actions
         self.invalid_transformations = 0
         self._base_modules: dict[str, tuple[Module, tuple[str, int]]] = {}
+        self._observable_cache: dict[str, tuple[str, int]] = {}  # IR hash -> (stdout, status)
         self._module: Module | None = None
 
     # ------------------------------------------------------------------ helpers
@@ -114,7 +117,7 @@ class PassSchedulingEnv:
         remaining = (self.horizon - self._t) / self.horizon
         return np.concatenate([np.array(feature_vector(self._module)), [remaining], last])
 
-    def _load(self, program: ProgramSpec) -> tuple[Module, tuple[str, int]]:
+    def load_program(self, program: ProgramSpec) -> tuple[Module, tuple[str, int]]:
         cached = self._base_modules.get(program.name)
         if cached is None:
             module = build_ir(program.source, program.name)
@@ -122,12 +125,21 @@ class PassSchedulingEnv:
             self._base_modules[program.name] = cached
         return clone_module(cached[0]), cached[1]
 
+    def _observable(self, module: Module) -> tuple[str, int]:
+        """Observable behaviour, memoized by IR hash (states recur across episodes)."""
+        key = hashlib.sha1(format_module(module).encode()).hexdigest()
+        cached = self._observable_cache.get(key)
+        if cached is None:
+            cached = run_module(module).observable
+            self._observable_cache[key] = cached
+        return cached
+
     # ------------------------------------------------------------------ Gym API
 
     def reset(self, program: ProgramSpec | None = None) -> tuple[np.ndarray, dict[str, Any]]:
         program = program or self.rng.choice(self.programs)
         self._program = program
-        self._module, self._reference = self._load(program)
+        self._module, self._reference = self.load_program(program)
         self._t = 0
         self._last_action: int | None = None
         self._c0 = self.evaluator(self._module)
@@ -147,7 +159,7 @@ class PassSchedulingEnv:
         cfg = self.reward_config
         try:
             new_module = apply_pass(self._module, name)  # verifies the IR
-            if self.check_output and run_module(new_module).observable != self._reference:
+            if self.check_output and self._observable(new_module) != self._reference:
                 raise RuntimeError(f"{name} changed observable behaviour")
         except Exception as exc:  # an invalid transformation is a compiler bug: count it
             self.invalid_transformations += 1
