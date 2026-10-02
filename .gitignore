@@ -1,0 +1,40 @@
+# --- Local machine / private files (never commit) ---------------------------
+# Contains host credentials; must never enter version control.
+server_system_info.txt
+# Local agent working files.
+BUILD_INSTRUCTIONS.txt
+claude_command.txt
+
+# --- Python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Compiler outputs --------------------------------------------------------
+*.o
+*.obj
+*.exe
+*.pdb
+*.ll.tmp
+/out/
+
+# --- Experiments ---------------------------------------------------------------
+# Individual run directories are large/noisy; curated results are copied into
+# experiments/<EXP-ID>/ and docs/RESULTS.md explicitly.
+experiments/runs/*
+!experiments/runs/.gitkeep
+
+# --- Editors / OS -------------------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
