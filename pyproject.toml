@@ -8,7 +8,10 @@ license = { text = "MIT" }
 authors = [{ name = "rsoumyadeep", email = "sdroy.csa.iisc@gmail.com" }]
 # Runtime dependencies are added only in the phase that needs them
 # (see docs/DECISIONS.md, D-007).
-dependencies = []
+dependencies = [
+    "llvmlite>=0.44",
+    "ziglang>=0.13",
+]
 
 [project.scripts]
 forgecompile = "forgecompile.cli.main:main"
@@ -61,3 +64,8 @@ warn_unused_ignores = true
 warn_redundant_casts = true
 disallow_untyped_defs = true
 no_implicit_optional = true
+
+[[tool.mypy.overrides]]
+# Third-party packages without type information.
+module = ["llvmlite.*", "ziglang.*"]
+ignore_missing_imports = true

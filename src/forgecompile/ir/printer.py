@@ -23,7 +23,7 @@ Conventions:
 * constants are typed by spelling: ``42`` is i64; ``1.5``, ``1.0e+20``,
   ``nan`` and ``inf`` are f64; ``true``/``false`` are i1; ``undef.i64``;
 * memory: ``load %p[%i]``, ``store %p[%i], %v``, ``alloca f64, 9``,
-  ``memzero %p, f64, 9``, ``boundscheck %i, 9``, ``ptradd %p, %off``.
+  ``memzero %p, f64, 9``, ``boundscheck %i, 9``, ``ptradd %p, %off, f64``.
 """
 
 from __future__ import annotations
@@ -41,6 +41,7 @@ from forgecompile.ir.instructions import (
     MemZeroInst,
     Opcode,
     PhiInst,
+    PtrAddInst,
     StoreInst,
 )
 from forgecompile.ir.values import Value
@@ -63,6 +64,8 @@ def _rhs(inst: Instruction) -> str:
             return f"load {_v(ops[0])}[{_v(ops[1])}]"
         case StoreInst():
             return f"store {_v(ops[0])}[{_v(ops[1])}], {_v(ops[2])}"
+        case PtrAddInst():
+            return f"ptradd {_v(ops[0])}, {_v(ops[1])}, {inst.elem_type}"
         case MemZeroInst():
             return f"memzero {_v(ops[0])}, {inst.elem_type}, {inst.count}"
         case BoundsCheckInst():

@@ -42,7 +42,7 @@ entry:
     memzero %a, f64, 4
     boundscheck 3, 4
     store %a[3], 2.5
-    %row: ptr = ptradd %a, 2
+    %row: ptr = ptradd %a, 2, f64
     %v: f64 = call @callee(%row, 1)
     %w: f64 = fmul %v, -1.5e-3
     %c: i1 = fcmp lt %w, 0.0

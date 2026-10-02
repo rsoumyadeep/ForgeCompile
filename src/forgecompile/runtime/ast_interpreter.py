@@ -21,6 +21,7 @@ clean error instead of a hang.
 from __future__ import annotations
 
 import sys
+import threading
 from dataclasses import dataclass
 from typing import Any
 
@@ -31,7 +32,8 @@ from forgecompile.runtime import semantics as sem
 from forgecompile.runtime.semantics import RuntimeTrap
 
 DEFAULT_MAX_STEPS = 50_000_000
-_RECURSION_LIMIT = 20_000
+_RECURSION_LIMIT = 200_000
+_THREAD_STACK_BYTES = 200 * 1024 * 1024  # CPython on Windows rejects >= 256 MiB
 
 
 @dataclass
@@ -49,6 +51,10 @@ class ExecutionResult:
 
 class StepLimitExceeded(Exception):
     """The program ran longer than the step budget (probably an infinite loop)."""
+
+
+class InterpreterLimitExceeded(Exception):
+    """The program exceeded a limit of the reference interpreter (e.g. recursion depth)."""
 
 
 class _Return(Exception):
@@ -87,16 +93,48 @@ class AstInterpreter:
     # ------------------------------------------------------------------ entry point
 
     def run(self) -> ExecutionResult:
+        """Run ``main`` in a worker thread with a large stack.
+
+        Each MiniLang call costs several Python frames here, so deep MiniLang
+        recursion would overflow the main thread's C stack long before Python's
+        recursion limit could protect it. A dedicated thread with a big stack,
+        plus a raised recursion limit, supports deep recursion (tested to depth
+        5,000). Anything deeper fails with a clear error instead of a crash.
+        """
+        outcome: dict[str, Any] = {}
+
+        def target() -> None:
+            try:
+                outcome["result"] = self._run_main()
+            except BaseException as exc:  # re-raised in the calling thread
+                outcome["error"] = exc
+
         old_limit = sys.getrecursionlimit()
+        old_stack = threading.stack_size()
         sys.setrecursionlimit(max(old_limit, _RECURSION_LIMIT))
+        threading.stack_size(_THREAD_STACK_BYTES)
+        try:
+            worker = threading.Thread(target=target, name="minilang-ast-interpreter")
+            worker.start()
+            worker.join()
+        finally:
+            threading.stack_size(old_stack)
+            sys.setrecursionlimit(old_limit)
+        if "error" in outcome:
+            error = outcome["error"]
+            if isinstance(error, RecursionError):
+                raise InterpreterLimitExceeded("recursion too deep for the reference interpreter")
+            raise error
+        result: ExecutionResult = outcome["result"]
+        return result
+
+    def _run_main(self) -> ExecutionResult:
         try:
             result = self._call(self.functions["main"], [])
         except RuntimeTrap as trap:
             return ExecutionResult(
                 "".join(self.output), sem.RUNTIME_ERROR_EXIT_CODE, trap=str(trap)
             )
-        finally:
-            sys.setrecursionlimit(old_limit)
         return ExecutionResult("".join(self.output), sem.exit_status(result))
 
     # ------------------------------------------------------------------ functions

@@ -36,7 +36,7 @@ directly from text.
 | `analysis/` | 3–4 | CFG queries, dominator tree, dominance frontiers, natural loops, preheaders, induction variables | ✅ |
 | `testing/` | 3 | random well-typed terminating program generator | ✅ |
 | `optimization/` | 4 | pass interface and registry, pass manager (verify after each pass), presets, utilities, 11 passes | ✅ |
-| `backend/` | 5 | LLVM IR emission, native linking | ⏳ |
+| `backend/` | 5 | LLVM IR emission + llvmlite verification, zig cc build/run, C runtime | ✅ |
 | `benchmarks` (runner) | 6 | measurement harness | ⏳ |
 | `ml/` | 7 | features, datasets, models, baselines | ⏳ |
 | `rl/` | 8–9 | environment, agents, training | ⏳ |
@@ -105,6 +105,17 @@ SSA IR ──PassManager([names])──► optimized SSA IR + PipelineReport (pe
 - Loop passes assume copy-propagated IR (D-023), which is a measured phase-ordering
   dependency.
 - See [OPTIMIZATIONS.md](OPTIMIZATIONS.md).
+
+## Backend (Phase 5)
+
+```
+optimized SSA IR ──emit_module──► LLVM IR text ──verify_llvm (llvmlite)──►
+   zig cc -O<llvm_opt> program.ll fc_runtime.c ──► native executable ──run_executable──► (stdout, status)
+```
+
+- `driver.compile_to_llvm(text, pipeline)` runs the whole chain up to verified LLVM IR.
+- LLVM defaults to `-O0` so measurements isolate ForgeCompile's passes (D-028).
+- See [LLVM_BACKEND.md](LLVM_BACKEND.md).
 
 ## Key design choices
 

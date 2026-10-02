@@ -13,7 +13,7 @@ Status legend: ✅ done · 🔨 in progress · ⏳ not started · ⚠️ done wi
 | 2 | Semantic analysis | ✅ | [PHASE_2](phases/PHASE_2.md) |
 | 3 | IR, reference interpreter, CFG, SSA | ✅ | [PHASE_3](phases/PHASE_3.md) |
 | 4 | Classical optimization engine | ✅ | [PHASE_4](phases/PHASE_4.md) |
-| 5 | LLVM backend + native executables | ⏳ | — |
+| 5 | LLVM backend + native executables | ✅ | [PHASE_5](phases/PHASE_5.md) |
 | 6 | Benchmarking infrastructure | ⏳ | — |
 | 7 | ML-based pass selection | ⏳ | — |
 | 8 | RL environment | ⏳ | — |
@@ -114,7 +114,7 @@ types.
 - Not implemented, deliberately: loop unrolling, load CSE/LICM, loop rotation (see
   OPTIMIZATIONS.md §5).
 
-## Phase 5 — LLVM backend
+## Phase 5 — LLVM backend ✅
 
 **Objective:** ForgeCompile IR → LLVM IR → native executable.
 
@@ -124,8 +124,12 @@ types.
 - Compare against LLVM's own `-O0..-O3` as a baseline. ForgeCompile's own passes stay the
   object of study.
 
-**Acceptance:** all end-to-end programs produce identical output on the interpreter and on
-native code. `docs/LLVM_BACKEND.md` states what is ours and what comes from LLVM.
+**Acceptance** (all met)
+- [x] Native output is identical to the interpreters for every example (ForgeCompile O0/O2 ×
+  LLVM O0/O2), for a semantic corner-case program (including at LLVM -O3), for runtime
+  errors, and for generated programs with random pass sequences and LLVM levels.
+- [x] `docs/LLVM_BACKEND.md` §1 tabulates what ForgeCompile implements vs what LLVM provides.
+- [x] LLVM `-O1..3` are available as comparison baselines (`--llvm-opt`).
 
 ## Phase 6 — Benchmarking infrastructure
 

@@ -359,7 +359,9 @@ class FunctionLowering:
                 if isinstance(ty, ArrayType):  # a row, passed by reference
                     if isinstance(offset, Constant) and offset.value == 0:
                         return ptr
-                    return self.emit_value(PtrAddInst(self.fn.new_temp(IRType.PTR), ptr, offset))
+                    elem = ir_type(_scalar_of(ty))
+                    dest = self.fn.new_temp(IRType.PTR)
+                    return self.emit_value(PtrAddInst(dest, ptr, offset, elem))
                 return self.emit_value(LoadInst(self.fn.new_temp(ir_type(ty)), ptr, offset))
             case ast.Call():
                 return self.call(expr)

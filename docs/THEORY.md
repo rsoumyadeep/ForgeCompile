@@ -16,7 +16,7 @@ textbook material without a code link.
 | 8. Dominance and SSA | 3 | ✅ |
 | 9. Data-flow analysis (lattices, fixpoints) | 4 | ✅ |
 | 10. Why each optimization is valid | 4 | ✅ |
-| 11. LLVM IR | 5 | ⏳ |
+| 11. LLVM IR | 5 | ✅ |
 | 12. Measuring performance | 6 | ⏳ |
 | 13. Why pass ordering is hard (the phase-ordering problem) | 7 | ⏳ |
 | 14. Pass scheduling as an MDP | 8 | ⏳ |
@@ -404,3 +404,45 @@ Each pass's correctness rests on a small number of arguments, which recur throug
 
 **In the code:** each pass's docstring states its correctness argument;
 [OPTIMIZATIONS.md](OPTIMIZATIONS.md) collects them with examples.
+
+## 11. LLVM IR
+
+**What LLVM is.** LLVM is a compiler infrastructure built around one IR. Frontends (Clang, rustc,
+Swift, and here ForgeCompile) translate to LLVM IR. Shared middle-end passes optimize it, and
+backends turn it into machine code for many targets. This is the *N + M* argument from §1 at
+industrial scale.
+
+**LLVM IR in one paragraph.** It is typed, three-address and in SSA form, with basic blocks,
+`phi` nodes and explicit terminators, very much like ForgeCompile's IR, which is why our
+translation is nearly 1:1 (`backend/llvm_emitter.py`). The differences that matter here:
+- values are instructions (no `copy`);
+- memory is reached through `getelementptr` address arithmetic;
+- arithmetic carries flags (`nsw`, `nuw`, `exact`) that *promise* the absence of overflow;
+- some operations have **undefined behaviour or poison** results.
+
+**Undefined behaviour and poison.** LLVM IR inherits C's attitude: `sdiv INT_MIN, -1` is UB;
+`add nsw` that overflows is poison; `fptosi` of an out-of-range double is poison. The optimizer
+may assume these never happen and transform code accordingly. MiniLang defines all of them
+(LANGUAGE.md §7), so the backend must never emit a construct whose UB case a MiniLang program
+could reach. That is why it:
+- omits `nsw`;
+- calls `@llvm.fptosi.sat` (saturating, defined for every input);
+- guards division with a helper that traps on zero and special-cases −1.
+
+`tests/backend/test_native.py::test_semantic_corner_cases` runs those exact cases at LLVM `-O3`,
+where an exploitable UB would most likely change the output.
+
+**Ordered vs unordered float comparisons.** LLVM's `fcmp` has 16 predicates. `oeq` ("ordered
+and equal") is false if either side is NaN; `une` ("unordered or not equal") is true if either
+side is NaN. IEEE `!=` is `une`, so mapping MiniLang `!=` to `one` would make `nan != nan`
+false. This is a classic backend bug that is avoided here by construction.
+
+**Why use LLVM at all** (DECISIONS D-002)? Writing instruction selection, register allocation
+and an object-file writer for x86-64 is a separate project. The project's subject is
+optimization and *where* to apply it, and LLVM lets every ForgeCompile decision run as real
+machine code. It also gives an honest comparison point: what an industrial optimizer achieves
+on the same input (`--llvm-opt 2`).
+
+**In the code:** `backend/llvm_emitter.py` (translation table in its docstring),
+`backend/runtime/fc_runtime.c`, `backend/native.py`; see [LLVM_BACKEND.md](LLVM_BACKEND.md).
+Try `forgecompile llvm examples/gcd.mini` and then `--llvm-opt 2`.

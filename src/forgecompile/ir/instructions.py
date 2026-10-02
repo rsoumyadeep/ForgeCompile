@@ -286,10 +286,16 @@ class StoreInst(Instruction):
 
 
 class PtrAddInst(Instruction):
-    """``dest = &ptr[offset]`` (used to pass a row of a 2-D array by reference)."""
+    """``dest = &ptr[offset]`` (used to pass a row of a 2-D array by reference).
 
-    def __init__(self, dest: Register, ptr: Value, offset: Value) -> None:
+    ``offset`` counts elements of ``elem_type``. The element type is recorded
+    because a derived pointer forgets which array it came from, and the LLVM
+    backend needs it to compute the byte stride (``getelementptr``).
+    """
+
+    def __init__(self, dest: Register, ptr: Value, offset: Value, elem_type: IRType) -> None:
         super().__init__(Opcode.PTRADD, dest, [ptr, offset])
+        self.elem_type = elem_type
 
 
 class MemZeroInst(Instruction):

@@ -202,7 +202,8 @@ class _FunctionParser:
                 raise IRParseError(line, "expected 'store %p[index], value'")
             return StoreInst(v(m.group(1), line), v(m.group(2), line), v(m.group(3), line))
         if opcode is Opcode.PTRADD:
-            return PtrAddInst(need_dest(), v(args[0], line), v(args[1], line))
+            elem = self._type(args[2], line)
+            return PtrAddInst(need_dest(), v(args[0], line), v(args[1], line), elem)
         if opcode is Opcode.MEMZERO:
             return MemZeroInst(v(args[0], line), self._type(args[1], line), int(args[2]))
         if opcode is Opcode.BOUNDSCHECK:

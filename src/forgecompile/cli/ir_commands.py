@@ -1,12 +1,13 @@
-"""IR-level subcommands: ``ir``, ``opt``, ``passes`` and ``run``."""
+"""IR-level subcommands: ``ir``, ``opt``, ``passes`` and ``run`` (interpreters or native)."""
 
 from __future__ import annotations
 
 import argparse
 import sys
 
+from forgecompile.backend.native import build_and_run
 from forgecompile.cli.common import EXIT_OK, CliError, read_source, run_compile_step
-from forgecompile.driver import build_ir, check_source
+from forgecompile.driver import build_ir, check_source, compile_to_llvm
 from forgecompile.ir.function import Module
 from forgecompile.ir.interpreter import IRExecutionResult, run_module
 from forgecompile.ir.printer import format_module
@@ -20,7 +21,7 @@ from forgecompile.optimization.pass_manager import (
 from forgecompile.runtime.ast_interpreter import ExecutionResult, run_program
 
 
-def _pipeline(args: argparse.Namespace) -> list[str]:
+def selected_pipeline(args: argparse.Namespace) -> list[str]:
     """The pass list selected by --passes / -O (default: no optimization)."""
     if args.passes is not None and args.opt_level is not None:
         raise CliError("use either --passes or -O, not both")
@@ -37,7 +38,7 @@ def _optimized(source_text: str, name: str, pipeline: list[str]) -> tuple[Module
     return module, optimize(module, pipeline)
 
 
-def _add_pipeline_options(parser: argparse.ArgumentParser) -> None:
+def add_pipeline_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--passes",
         metavar="PIPELINE",
@@ -64,7 +65,7 @@ def _cmd_ir(args: argparse.Namespace) -> int:
 
 def _cmd_opt(args: argparse.Namespace) -> int:
     source = read_source(args.file)
-    pipeline = _pipeline(args)
+    pipeline = selected_pipeline(args)
 
     def step() -> int:
         module, report = _optimized(source.text, source.name, pipeline)
@@ -88,9 +89,9 @@ def _cmd_passes(args: argparse.Namespace) -> int:
 
 def _cmd_run(args: argparse.Namespace) -> int:
     source = read_source(args.file)
-    pipeline = _pipeline(args)
-    if args.engine != "ir" and pipeline:
-        raise CliError("--passes/-O requires the default 'ir' engine")
+    pipeline = selected_pipeline(args)
+    if args.engine not in ("ir", "native") and pipeline:
+        raise CliError("--passes/-O requires the 'ir' or 'native' engine")
 
     def step() -> int:
         stats: IRExecutionResult | None = None
@@ -101,6 +102,12 @@ def _cmd_run(args: argparse.Namespace) -> int:
         elif args.engine == "ir-nossa":
             stats = run_module(build_ir(source.text, source.name, ssa=False))
             result = stats
+        elif args.engine == "native":
+            llvm_ir, _ = compile_to_llvm(source.text, source.name, pipeline)
+            _, native = build_and_run(llvm_ir, args.llvm_opt)
+            sys.stdout.write(native.stdout)
+            sys.stderr.write(native.stderr)
+            return native.exit_code
         else:
             module, _ = _optimized(source.text, source.name, pipeline)
             stats = run_module(module)
@@ -125,7 +132,7 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
 
     opt = subparsers.add_parser("opt", help="optimize a MiniLang file and print the IR")
     opt.add_argument("file")
-    _add_pipeline_options(opt)
+    add_pipeline_options(opt)
     opt.add_argument("--stats", action="store_true", help="print per-pass statistics to stderr")
     opt.set_defaults(handler=_cmd_opt)
 
@@ -136,10 +143,18 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     run.add_argument("file")
     run.add_argument(
         "--engine",
-        choices=["ir", "ir-nossa", "ast"],
+        choices=["ir", "ir-nossa", "ast", "native"],
         default="ir",
-        help="ir: SSA IR (default); ir-nossa: pre-SSA IR; ast: reference AST interpreter",
+        help="ir: SSA IR interpreter (default); ir-nossa: pre-SSA IR; ast: reference AST "
+        "interpreter; native: compile with LLVM and run the executable",
     )
-    _add_pipeline_options(run)
+    run.add_argument(
+        "--llvm-opt",
+        type=int,
+        choices=[0, 1, 2, 3],
+        default=0,
+        help="LLVM optimization level for --engine native (default 0)",
+    )
+    add_pipeline_options(run)
     run.add_argument("--stats", action="store_true", help="print dynamic instruction counts")
     run.set_defaults(handler=_cmd_run)

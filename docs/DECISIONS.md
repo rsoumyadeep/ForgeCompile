@@ -387,3 +387,65 @@ one and links back to it.
   (`INLINE_THRESHOLD`), so later experiments can vary it.
 - **Measured trade-off (EXP-001):** static size grows 1.52× on the examples, cost drops 3.9%,
   and the worst case is slightly worse (1.012).
+
+## D-026 — Emit textual LLVM IR; verify with llvmlite; build with zig cc
+
+- **Date:** 2026-10-02 (Phase 5)
+- **Alternatives:** llvmlite's `ir` builder API; the LLVM C API via ctypes; generating C
+  instead of LLVM IR.
+- **Chosen:** Plain textual LLVM IR, parsed and verified by `llvmlite.binding`, then compiled
+  and linked by `zig cc` together with a small C runtime.
+- **Why:**
+  - Textual IR is easy to read in tests and docs, and it diffs well.
+  - The ForgeCompile → LLVM mapping is visible in one table-like function.
+  - Generating C would hide the SSA/phi structure and add C's own undefined behaviour.
+  - zig cc gives clang's code generation and a linker from pip alone.
+- **Trade-off:** Text generation can produce invalid IR, which is mitigated by verifying every
+  module. One subprocess per build costs about 0.3 s.
+
+## D-027 — Checked operations as `internal alwaysinline` helpers; 1:1 block mapping
+
+- **Date:** 2026-10-02 (Phase 5)
+- **Alternatives:** split ForgeCompile blocks and emit inline compare and branch code for every
+  division and bounds check.
+- **Chosen:** Small LLVM helper functions (`__fc_sdiv`, `__fc_srem`, `__fc_boundscheck`) that
+  trap through the C runtime. Division by a constant other than 0 or −1 emits a plain
+  `sdiv`/`srem`.
+- **Why:**
+  - Keeping one LLVM block per IR block means phi labels never need rewriting, which is a
+    common source of backend bugs.
+  - LLVM inlines the helpers at any optimization level above 0.
+- **Trade-off:** At LLVM `-O0` each check is a real call. This makes ForgeCompile-only
+  measurements pessimistic for checks that ForgeCompile does not remove. That is honest: the
+  checks *are* the cost of MiniLang's safety, and `bce` exists to remove them.
+
+## D-028 — Experiments isolate ForgeCompile optimizations with LLVM `-O0`
+
+- **Date:** 2026-10-02 (Phase 5)
+- **Chosen:** `--llvm-opt` defaults to 0. Benchmarks report ForgeCompile pipelines at LLVM
+  `-O0`, and separately report LLVM `-O1..3` as baselines.
+- **Why:** At `-O2`, LLVM's own GVN/LICM/inlining would redo or undo ForgeCompile's work, and
+  any measured difference would mostly reflect LLVM. The project must not claim LLVM's wins as
+  its own.
+- **Consequence:** Absolute native speed at `-O0` is far from what a production compiler
+  achieves. Results are about *relative* effects of ForgeCompile's decisions.
+
+## D-029 — Runtime errors and output formatting in a C runtime; binary stdout on Windows
+
+- **Date:** 2026-10-02 (Phase 5)
+- **Chosen:** `fc_runtime.c` provides `print` for each type and the trap functions. NaN and
+  infinity spellings are fixed explicitly, and finite floats use `printf("%.6f")` after a
+  4,022-value comparison with Python. Windows stdout is put in binary mode.
+- **Why:** These are the points where native behaviour most easily diverges from the
+  interpreter (`-nan`, `1.#INF`, CRLF), so they are pinned down in one small, readable file.
+
+## D-030 — Reference AST interpreter runs in a large-stack worker thread
+
+- **Date:** 2026-10-02 (Phase 5)
+- **Context:** The corner-case program recurses 5,000 deep. The AST interpreter uses about 6
+  Python frames per MiniLang call and hit the recursion limit (F-012).
+- **Chosen:** Run it in a thread with a 200 MiB stack and a raised recursion limit. Remaining
+  overflows raise `InterpreterLimitExceeded` instead of crashing.
+- **Why:** The oracle must handle what native code and the IR interpreter handle. An explicit
+  stack (as in the IR interpreter) would make the reference interpreter much less readable.
+- **Platform note:** CPython on Windows rejects thread stacks ≥ 256 MiB.

@@ -18,7 +18,7 @@ misconceptions.
 | 8 | SSA | 3 | ✅ below |
 | 9 | Data-flow analysis | 4 | ✅ below |
 | 10 | Classical optimizations | 4 | ✅ below |
-| 11 | LLVM | 5 | ⏳ |
+| 11 | LLVM | 5 | ✅ below |
 | 12 | Benchmarking | 6 | ⏳ |
 | 13 | ML for compiler optimization | 7 | ⏳ |
 | 14 | RL formulation | 8 | ⏳ |
@@ -346,3 +346,43 @@ then compare `forgecompile run --stats` with and without `-O 2`.
 **Common misconceptions.**
 - "Optimizations always make code faster." EXP-001 has counterexamples.
 - "SSA makes every substitution valid." The replacement must also dominate the uses (F-009).
+
+## 11. LLVM
+
+**What you need to know.**
+- The ForgeCompile → LLVM translation table (LLVM_BACKEND.md §2).
+- Why no `nsw`, why `fptosi.sat`, why checked division, and why `fcmp une` for `!=`.
+- The exact split between ForgeCompile's work and LLVM's (LLVM_BACKEND.md §1).
+- Why experiments use LLVM `-O0`.
+- How the C runtime defines observable behaviour (formatting, traps, Windows binary stdout).
+
+See [THEORY §11](THEORY.md#11-llvm-ir).
+
+**Where in the code.** `backend/llvm_emitter.py` (`_FunctionEmitter.instruction`,
+`PRELUDE`, `_c_main`), `backend/native.py`, `backend/runtime/fc_runtime.c`.
+
+**Example.** `forgecompile llvm -O 2 examples/gcd.mini` vs `forgecompile llvm -O 2 --llvm-opt 2
+examples/gcd.mini`. Spot the checked `__fc_srem` call becoming a `switch` after LLVM inlines
+it.
+
+**Likely interview questions**
+- *What does LLVM do in your pipeline?* At the default setting: parse, verify, select
+  instructions, allocate registers, emit machine code. No IR optimization unless asked for.
+  All studied optimizations happen before LLVM.
+- *How do you make sure LLVM doesn't "optimize away" MiniLang semantics?* Never emit
+  constructs with reachable UB/poison: no `nsw`, saturating casts, checked division. The
+  corner-case test runs at `-O3`.
+- *How did you verify the backend?* llvmlite verification, plus native vs interpreter
+  differential tests: examples, a corner-case program, runtime errors, and generated programs
+  with random pass sequences and LLVM levels.
+- *Why is `nan != nan` true, and how is that encoded?* IEEE says unordered compares are
+  not-equal, so the encoding is `fcmp une`.
+- *Why a C runtime instead of LLVM IR for printing?* It is clearer, and its formatting was
+  checked against Python on 4,022 values. Performance-relevant checks (division, bounds) stay
+  in LLVM IR so LLVM can inline and optimize them.
+
+**Common misconceptions.**
+- "`-O0` means LLVM does nothing." It still selects instructions and allocates registers.
+  It does not run IR optimization passes.
+- "Native timing of small programs measures code quality." Here it mostly measures process
+  startup (50–90 ms).

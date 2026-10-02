@@ -1,0 +1,93 @@
+// Corner cases of MiniLang semantics that native code must reproduce exactly.
+// Several of these are *undefined behaviour* in C/LLVM but defined in MiniLang
+// (docs/LANGUAGE.md section 7), so the backend must handle them explicitly.
+
+// Names that collide with C library symbols must not clash after compilation.
+fn abs(x: int) -> int { if x < 0 { return -x; } return x; }
+fn sqrt(x: float) -> float { return x / 2.0; }
+fn printf(x: int) -> int { return x + 1; }
+fn puts(b: bool) -> bool { return !b; }
+
+fn fill(row: [float; 3], v: float) {
+    for i in 0..3 { row[i] = v * (i as float); }
+}
+
+fn depth(n: int) -> int {
+    if n == 0 { return 0; }
+    return 1 + depth(n - 1);
+}
+
+fn main() -> int {
+    let max = 9223372036854775807;
+    let min = -9223372036854775807 - 1;
+    let minus_one = -1;
+
+    // integer wrap-around and C division
+    print(max + 1);
+    print(min - 1);
+    print(max * 2);
+    print(-min);
+    print(min / minus_one);   // UB in C/LLVM; MiniLang: wraps to INT_MIN
+    print(min % minus_one);   // UB in C/LLVM; MiniLang: 0
+    print(-7 / 2);
+    print(-7 % 2);
+    print(7 % -2);
+
+    // floating point specials
+    let zero = 0.0;
+    let nan = zero / zero;
+    let inf = 1.0 / zero;
+    print(nan);
+    print(-nan);
+    print(inf);
+    print(-inf);
+    print(-zero);
+    print(nan == nan);
+    print(nan != nan);
+    print(nan < 1.0);
+    print(-7.5 % 2.0);
+    print(1e300 * 1e300);
+    print(2.0 / 3.0);
+    print(1e20);
+    print(0.0000015);
+
+    // saturating casts
+    print(1e300 as int);
+    print(-1e300 as int);
+    print(nan as int);
+    print(inf as int);
+    print(-2.9 as int);
+    print(nan as bool);
+    print(-0.0 as bool);
+    print(true as float);
+    print(min as float);
+
+    // booleans
+    let t = true;
+    print(t && !t);
+    print(t || !t);
+    print(t == false);
+
+    // shadowing names from the C library
+    print(abs(-5));
+    print(sqrt(9.0));
+    print(printf(41));
+    print(puts(false));
+
+    // 2-D array rows passed by reference (ptradd element type)
+    let m: [[float; 3]; 2];
+    fill(m[1], 1.5);
+    print(m[1][2]);
+    print(m[0][2]);
+
+    // bool arrays
+    let flags: [bool; 4];
+    flags[2] = true;
+    print(flags[2]);
+    print(flags[3]);
+
+    // recursion depth
+    print(depth(5000));
+
+    return 300;   // exit status 300 % 256 = 44
+}

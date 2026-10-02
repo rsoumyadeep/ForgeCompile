@@ -40,7 +40,15 @@ uv run forgecompile passes                             # list optimization passe
 uv run forgecompile opt -O 2 --stats examples/gcd.mini # optimized IR + per-pass report
 uv run forgecompile opt --passes copyprop,bce examples/matmul.mini
 uv run forgecompile run -O 2 examples/matmul.mini      # execute optimized IR
+uv run forgecompile llvm -O 2 examples/gcd.mini        # LLVM IR (add --llvm-opt 2 to see LLVM's -O2)
+uv run forgecompile build -O 2 -o gcd.exe examples/gcd.mini   # native executable
+uv run forgecompile run --engine native -O 2 examples/gcd.mini
 ```
+
+Native builds need no system compiler: the `ziglang` package provides `zig cc`. **The first
+native build on a machine takes about a minute**, because zig compiles its libc into a
+cache. After that each build takes about 0.3 s. Native tests are marked `native`
+(`uv run pytest -m "not native"` skips them).
 
 `run` exits with the program's own exit status: main's return value mod 256, or 101 after a
 runtime error such as division by zero or an out-of-bounds index.

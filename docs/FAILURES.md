@@ -243,3 +243,22 @@ Template:
    before calling `finalize()`. Fixed the ordering, and restored the curated copies from the
    run directories' final `metadata.json` (status `completed`, clean commits `6f13055` and
    `453feab`). Experiment outputs are now also forced to LF line endings on Windows.
+
+## F-012 — The reference AST interpreter overflowed on deep recursion
+
+- **Date / Phase:** 2026-10-02, Phase 5
+- **Attempted:** Running `tests/programs/semantics_edge.mini` (recursion depth 5,000) on all
+  engines.
+- **Symptom:** Native code and the IR interpreter printed `5000`. The AST interpreter died with
+  a long `RecursionError` traceback.
+- **Root cause:** Each MiniLang call goes through about 6 Python frames (`_call`, `_block`,
+  `_stmt`, `_eval`, ...), and 5,000 × 6 exceeded the 20,000 limit. Raising the limit alone is
+  unsafe, because the main thread's C stack can then overflow and crash the process.
+- **Fix:** Run the interpreter in a worker thread with a large stack plus a raised recursion
+  limit, and turn a remaining `RecursionError` into `InterpreterLimitExceeded` (D-030). The
+  first attempt used 512 MiB and failed with `ValueError: size not valid`, because CPython on
+  Windows caps thread stacks below 256 MiB (`THREAD_MAX_STACKSIZE`). 200 MiB works.
+- **Fix worked?:** Yes. All four engines now produce byte-identical output for the corner-case
+  program.
+- **Lesson:** An oracle is only useful within its limits, and those limits must fail loudly
+  and clearly, not as an interpreter crash that could be mistaken for a compiler bug.

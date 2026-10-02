@@ -8,7 +8,7 @@
 | CPU | Intel Core i5-8300H (4 cores / 8 threads), 16 GB RAM, no GPU |
 | Python | 3.11.15 (uv-managed; pinned via `.python-version`) |
 | Package manager | uv 0.11 |
-| Backend toolchain | none system-wide; llvmlite + ziglang wheels from Phase 5 (D-002) |
+| Backend toolchain | llvmlite 0.50.0 (LLVM 22.1.0) + ziglang 0.16.0 wheels (D-002); no system compiler |
 
 `forgecompile info` prints the live equivalent of this table.
 

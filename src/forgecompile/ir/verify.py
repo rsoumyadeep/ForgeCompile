@@ -40,6 +40,7 @@ from forgecompile.ir.instructions import (
     MemZeroInst,
     Opcode,
     PhiInst,
+    PtrAddInst,
     Terminator,
 )
 from forgecompile.ir.values import IRType, Register, Value
@@ -181,7 +182,9 @@ class _FunctionVerifier:
             e(block, inst, ops[1], IRType.I64, "index")
             if ops[2].type not in SCALAR_TYPES:
                 self.error(block, f"'{inst!r}': store of non-scalar type {ops[2].type}")
-        elif op is Opcode.PTRADD:
+        elif isinstance(inst, PtrAddInst):
+            if inst.elem_type not in SCALAR_TYPES:
+                self.error(block, f"'{inst!r}': ptradd element type must be scalar")
             e(block, inst, ops[0], IRType.PTR, "pointer")
             e(block, inst, ops[1], IRType.I64, "offset")
             assert dest is not None
