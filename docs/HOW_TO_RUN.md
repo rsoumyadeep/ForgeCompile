@@ -31,7 +31,18 @@ uv run forgecompile parse examples/gcd.mini            # AST tree
 uv run forgecompile parse --format examples/gcd.mini   # canonical source (round-trippable)
 uv run forgecompile check examples/gcd.mini            # parse + type-check
 uv run forgecompile check --dump examples/gcd.mini     # AST annotated with types
+uv run forgecompile ir --no-ssa examples/gcd.mini      # IR straight from lowering
+uv run forgecompile ir examples/gcd.mini               # SSA IR
+uv run forgecompile run examples/gcd.mini              # execute (SSA IR interpreter)
+uv run forgecompile run --engine ast examples/gcd.mini # execute (reference AST interpreter)
+uv run forgecompile run --stats examples/gcd.mini      # + dynamic instruction counts (stderr)
 ```
+
+`run` exits with the program's own exit status: main's return value mod 256, or 101 after a
+runtime error such as division by zero or an out-of-bounds index.
+
+The extended differential fuzz test (940 generated programs) is marked `slow`:
+`uv run pytest -m slow`.
 
 Syntax and type errors are printed to stderr with source excerpts, and the exit code is 1.
 

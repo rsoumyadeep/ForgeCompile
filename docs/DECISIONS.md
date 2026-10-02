@@ -231,3 +231,90 @@ one and links back to it.
   other indices are bounds-checked at run time (D-010).
 - **Trade-off:** This rejects code that is unreachable, such as `if false { a[5] = 1; }`.
   rustc makes the same choice: a guaranteed failure is almost always a bug.
+
+## D-016 — Register-based three-address IR with multi-assignment before SSA
+
+- **Date:** 2026-10-02 (Phase 3)
+- **Alternatives:**
+  1. LLVM style: an instruction *is* its value, and locals live in `alloca` memory until a
+     mem2reg pass promotes them.
+  2. Tree or stack IR.
+  3. **Virtual-register three-address code.** A variable is a register assigned by `copy`, and
+     SSA construction renames registers.
+- **Chosen:** Option 3.
+- **Why:**
+  - SSA construction becomes the textbook Cytron renaming of registers, without first
+    turning loads and stores into values.
+  - The IR stays small: no loads and stores for scalars.
+  - Pre-SSA IR is executable and inspectable, so lowering can be tested on its own.
+- **Trade-off:** Between lowering and SSA, a register can have several definitions, so the
+  verifier has a separate pre-SSA mode. The IR also differs slightly from LLVM's value model:
+  Phase 5 maps registers to LLVM values, and forwards `copy` operands because LLVM has no
+  copy instruction.
+
+## D-017 — SSA is the canonical form; no out-of-SSA translation
+
+- **Date:** 2026-10-02 (Phase 3)
+- **Context:** The instructions warn against implementing SSA "because it sounds impressive".
+  The decision must be justified by consumers.
+- **Chosen:** Lowering produces pre-SSA IR. `build_ir` immediately constructs SSA, and all
+  optimization passes and the LLVM backend consume SSA.
+- **Why SSA:** The Phase 4 passes (SCCP, copy propagation, CSE/GVN, DCE) are simpler and
+  sparser on SSA, and LLVM IR is SSA. See IR.md §9.
+- **Why no out-of-SSA:** Its consumers would be a register allocator or a non-SSA backend, and
+  this project has neither. LLVM handles phi elimination.
+- **Revisit if:** a non-LLVM backend or a source-level decompiler is added.
+
+## D-018 — Flat arrays with explicit `boundscheck`; traps are effects
+
+- **Date:** 2026-10-02 (Phase 3)
+- **Chosen:**
+  - Arrays are flat zero-filled buffers (allocas hoisted to entry, `memzero` at the
+    declaration site), with row-major offsets.
+  - `boundscheck idx, len` is a separate instruction.
+  - `sdiv`/`srem`/`boundscheck`/`call` are classified *may trap* and are never deleted as
+    "unused".
+- **Why:**
+  - Explicit checks make bounds-check elimination a visible, measurable optimization.
+  - Classifying traps as effects is what keeps DCE correct under fully defined semantics
+    (D-010).
+- **Trade-off:** More instructions per array access. Native code pays for the checks unless
+  they are eliminated.
+
+## D-019 — Independent reference AST interpreter as a second oracle
+
+- **Date:** 2026-10-02 (Phase 3)
+- **Alternatives:** trust the IR interpreter alone; hand-write expected outputs only.
+- **Chosen:** A separate AST interpreter, deliberately structured differently: nested lists,
+  exceptions for control flow. Only the arithmetic helpers (`runtime/semantics.py`) are
+  shared, and those are tested against hand-computed C/IEEE values.
+- **Why:** A bug in lowering would otherwise be invisible. The IR interpreter would faithfully
+  run the wrong IR.
+- **Trade-off:** Two interpreters to maintain (about 300 lines for the AST one).
+
+## D-020 — Random program generator, built for both testing and later workloads
+
+- **Date:** 2026-10-02 (Phase 3)
+- **Chosen:** `forgecompile.testing.program_generator` generates well-typed, *terminating*
+  programs:
+  - small constant `for` bounds;
+  - counter-guarded `while` loops;
+  - no recursion;
+  - no helper calls inside helper loops;
+  - divisors of the form `e*e+1`, which is never 0 mod 2⁶⁴;
+  - indices of the form `((e%n)+n)%n`;
+  - a 2% chance of deliberately unsafe divisors and indices, to exercise trap paths.
+
+  It builds ASTs and prints them with the formatter.
+- **Why:** Differential testing needs volume and variety that hand-written tests cannot give.
+  Phases 7 and 9 need training workloads produced the same way.
+- **Known bias:** Generated programs are small (median of about 100 IR steps), heavy on
+  constants, and light on deep loop nests. Phase 6/7 must not treat them as representative
+  of real code. Benchmark kernels are hand-written instead.
+
+## D-006 (update) — IR interpreter cost model implemented, validation pending
+
+- **Date:** 2026-10-02 (Phase 3)
+- The interpreter now reports per-opcode dynamic counts and a weighted cost
+  (`DEFAULT_COST_MODEL`). The weights are *assumed* rough latencies. Phase 6 must measure
+  their correlation with native runtime before ML/RL rewards rely on them.

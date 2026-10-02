@@ -11,7 +11,7 @@ Status legend: ✅ done · 🔨 in progress · ⏳ not started · ⚠️ done wi
 | 0 | Project foundation | ✅ | [PHASE_0](phases/PHASE_0.md) |
 | 1 | MiniLang frontend (lexer, parser, AST) | ✅ | [PHASE_1](phases/PHASE_1.md) |
 | 2 | Semantic analysis | ✅ | [PHASE_2](phases/PHASE_2.md) |
-| 3 | IR, reference interpreter, CFG, SSA | ⏳ | — |
+| 3 | IR, reference interpreter, CFG, SSA | ✅ | [PHASE_3](phases/PHASE_3.md) |
 | 4 | Classical optimization engine | ⏳ | — |
 | 5 | LLVM backend + native executables | ⏳ | — |
 | 6 | Benchmarking infrastructure | ⏳ | — |
@@ -68,7 +68,7 @@ types.
 - [x] `forgecompile check [--dump]` exists.
 - [x] Mutation testing: 4 injected checker bugs were all caught (FAILURES F-005).
 
-## Phase 3 — IR, reference interpreter, CFG, SSA
+## Phase 3 — IR, reference interpreter, CFG, SSA ✅
 
 **Objective:** an inspectable three-address IR that supports optimization.
 
@@ -83,8 +83,14 @@ types.
   out-of-SSA. The decision to use SSA, and its limits, will be argued in `docs/IR.md`.
 - IR verifier (well-formedness, SSA dominance property).
 
-**Acceptance:** for every test program, the interpreter's output matches the expected output
-both before and after SSA conversion. The verifier passes on all lowered IR.
+**Acceptance** (all met)
+- [x] Every example matches its hand-verified golden output on the AST interpreter, the
+  pre-SSA IR and the SSA IR. 1,000 generated programs agree across all three engines.
+- [x] The verifier passes on all lowered IR, and on all SSA IR in SSA mode (dominance
+  property).
+- [x] The SSA decision is argued in IR.md §9 / D-017. Out-of-SSA was deliberately not built.
+- [x] Beyond the original plan: a reference AST interpreter (D-019) and a random program
+  generator (D-020).
 
 ## Phase 4 — Classical optimization engine
 

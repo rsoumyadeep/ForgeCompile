@@ -30,8 +30,11 @@ directly from text.
 | `frontend/` | 1 | tokens, lexer, parser (recursive descent + Pratt, panic-mode recovery) | ✅ |
 | `ast/` | 1 | nodes, language types, operator precedence table, tree/S-expr dump, source formatter | ✅ |
 | `semantic/` | 2 | symbols and scopes, two-pass type checker, return-path analysis | ✅ |
-| `ir/` | 3 | IR data structures, builder, printer, parser, verifier, interpreter, lowering | ⏳ |
-| `analysis/` | 3–4 | CFG, dominators, dominance frontiers, liveness, loops | ⏳ |
+| `runtime/` | 3 | exact MiniLang arithmetic semantics; reference AST interpreter | ✅ |
+| `lowering.py` | 3 | type-checked AST → pre-SSA IR | ✅ |
+| `ir/` | 3 | values, instructions, blocks/functions, printer, parser, verifier, interpreter + cost model, SSA construction | ✅ |
+| `analysis/` | 3–4 | CFG queries, dominator tree, dominance frontiers (✅); liveness, loops (Phase 4) | 🔨 |
+| `testing/` | 3 | random well-typed terminating program generator | ✅ |
 | `optimization/` | 4 | pass interface, pass manager, passes | ⏳ |
 | `backend/` | 5 | LLVM IR emission, native linking | ⏳ |
 | `benchmarks` (runner) | 6 | measurement harness | ⏳ |
@@ -77,6 +80,18 @@ ast.Program ──TypeChecker pass 1──► function signature table
   objects with unique `uid`s, so shadowed variables never collide in later phases.
 - An `ERROR` type suppresses cascades (D-014).
 - `control_flow.completes_normally` handles the conservative missing-return check.
+
+## Middle end (Phase 3)
+
+```
+CheckedProgram ──lower_program──► pre-SSA IR ──verify──► construct_ssa ──verify(ssa)──► SSA IR
+                                       │                                                 │
+                                       └──────── IRInterpreter (oracle + cost) ◄──────────┘
+AST ──AstInterpreter── reference behaviour (differential tests compare all engines)
+```
+
+- `driver.build_ir(text, ssa=True)` runs the whole chain, with verification after each step.
+- See [IR.md](IR.md) for the instruction set, memory model, effect classes and SSA design.
 
 ## Key design choices
 

@@ -11,9 +11,9 @@ MiniLang source ─► lexer ─► parser ─► AST ─► semantic analysis
         ─► LLVM IR ─► native executable
 ```
 
-> **Project status:** Phases 0–2 are complete: the foundation, the MiniLang frontend (lexer,
-> parser, AST, diagnostics), and semantic analysis (scopes, type checking). The IR,
-> optimizations and the backend are not implemented yet. See [docs/ROADMAP.md](docs/ROADMAP.md). This README only describes
+> **Project status:** Phases 0–3 are complete: foundation, MiniLang frontend, semantic
+> analysis, and the IR (lowering, SSA construction, verifier, interpreters, CFG/dominators).
+> Optimization passes, the LLVM backend and the ML/RL components are not implemented yet. See [docs/ROADMAP.md](docs/ROADMAP.md). This README only describes
 > things that already exist; nothing here is aspirational.
 
 ## Quick start
@@ -28,6 +28,8 @@ uv run pytest                # run the test suite
 uv run forgecompile parse examples/fibonacci.mini           # print the AST
 uv run forgecompile parse --format examples/fibonacci.mini  # canonical source
 uv run forgecompile check examples/fibonacci.mini           # type-check
+uv run forgecompile ir examples/fibonacci.mini              # SSA IR
+uv run forgecompile run --stats examples/fibonacci.mini     # execute + instruction counts
 ```
 
 See [docs/HOW_TO_RUN.md](docs/HOW_TO_RUN.md) for details.

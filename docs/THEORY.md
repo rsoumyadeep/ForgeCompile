@@ -11,9 +11,9 @@ textbook material without a code link.
 | 3. Grammars and parsing (recursive descent, Pratt) | 1 | ✅ |
 | 4. The AST | 1 | ✅ |
 | 5. Semantic analysis: symbol tables, scopes, types | 2 | ✅ |
-| 6. Intermediate representations | 3 | ⏳ |
-| 7. Control-flow graphs and basic blocks | 3 | ⏳ |
-| 8. Dominance and SSA | 3 | ⏳ |
+| 6. Intermediate representations | 3 | ✅ |
+| 7. Control-flow graphs and basic blocks | 3 | ✅ |
+| 8. Dominance and SSA | 3 | ✅ |
 | 9. Data-flow analysis (lattices, fixpoints) | 4 | ⏳ |
 | 10. Why each optimization is valid | 4 | ⏳ |
 | 11. LLVM IR | 5 | ⏳ |
@@ -240,3 +240,94 @@ rejects some programs that would in fact always return.
 **In the code:** `src/forgecompile/semantic/symbols.py` (`Scope`, `VariableSymbol`),
 `checker.py` (`TypeChecker`), `control_flow.py`. Tests: `tests/semantic/` (116 tests). Try
 `forgecompile check --dump examples/newton_sqrt.mini` to see every expression's type.
+
+## 6. Intermediate representations
+
+**What an IR is for.** An IR is the representation a compiler *optimizes*. Source syntax is
+designed for humans and machine code for hardware; the IR is designed so that questions like
+"is this value constant?", "is this computation repeated?" and "can this code run?" are easy
+to ask and to answer.
+
+**Three-address code.** Each instruction does one operation on at most two inputs and names
+its result: `%t3 = add %total, %t2`. Compound expressions are flattened. Every intermediate
+value gets a name, so a pass can talk about "the result of this multiply" and replace or move
+it.
+
+**Lowering** (`lowering.py`) is the translation from AST to IR. Ours is deliberately *naive*:
+- each variable becomes a register assigned by `copy`;
+- `&&` becomes branches;
+- `m[i][j]` becomes explicit bounds checks plus a flat offset `i*C + j`;
+- a literal index still produces `mul 0, 4`.
+
+Naive lowering is easy to verify, and every inefficiency it leaves becomes measurable work
+for the optimizer. That is the separation of concerns compilers rely on: correctness first,
+improvement second.
+
+**Two oracles.** The IR interpreter defines what IR *means*. The AST interpreter
+(`runtime/ast_interpreter.py`) defines what MiniLang *means*, transcribing LANGUAGE.md §7 with
+none of the IR machinery: nested lists rather than flat buffers, exceptions rather than
+blocks. Lowering is correct when the two agree. They are compared on every example and on
+1,000 generated programs.
+
+**In the code:** `ir/instructions.py`, `ir/function.py`, `ir/printer.py`, `lowering.py`; see
+[IR.md](IR.md). Try `forgecompile ir --no-ssa examples/gcd.mini`.
+
+## 7. Control-flow graphs and basic blocks
+
+**Basic block.** A basic block is a maximal sequence of instructions with one entry (the top)
+and one exit (the terminator at the bottom). If its first instruction runs, all of them run,
+in order. This is why many analyses work per block and only reason about *edges* between
+blocks.
+
+**CFG.** Nodes are blocks; there is an edge A → B when A's terminator can jump to B. Loops
+appear as *back edges* (latch → header).
+
+**Reverse postorder (RPO).** Do a DFS from the entry and list the blocks in reverse order of
+finishing. Every block then comes before its successors, except across back edges. Forward
+data-flow analyses converge in very few passes when they visit blocks in RPO
+(`analysis/cfg.py::reverse_postorder`).
+
+**Critical edges.** An edge from a block with several successors to a block with several
+predecessors is *critical*. Code cannot be placed on it without splitting it with a new
+block (`split_edge`). This matters for code motion and for out-of-SSA translation.
+
+## 8. Dominance and SSA
+
+**Dominance.** A *dominates* B if every path from the entry to B passes through A. The
+nearest strict dominator is the *immediate dominator*, and the idom edges form the
+**dominator tree**.
+
+The Cooper–Harvey–Kennedy algorithm (`analysis/dominators.py`) computes it by iterating
+
+```
+idom(b) = intersect_{p ∈ preds(b), p processed} p      (in RPO, until stable)
+```
+
+where `intersect` walks two nodes up the current tree until they meet.
+
+**Dominance frontier.** B ∈ DF(A) iff A dominates a predecessor of B but does not strictly
+dominate B. It is the boundary where A's influence ends, which is exactly where a definition
+made in A can meet a competing definition from another path.
+
+**SSA.** Each register is assigned exactly once. To make that possible at join points, a
+**phi** chooses a value according to the incoming edge: `%x.3 = phi [%x.1, then],
+[%x.2, else]`.
+
+**Why phis go at dominance frontiers (Cytron et al.).** A definition of x in block D reaches,
+unchallenged, every block D dominates. The first blocks it does *not* dominate, but still
+reaches, are DF(D). There a different definition may also arrive, so a phi is needed. A phi
+is itself a definition, so the process repeats on the frontier of the frontier: the
+**iterated** DF.
+
+**Renaming.** Walk the dominator tree with a stack of versions per variable. Each definition
+pushes a fresh name. Each use takes the top of the stack. When leaving a block, pop what it
+pushed. Walking the *dominator* tree is what guarantees that the top of the stack is the
+definition that dominates the use.
+
+**The dominance property** is the invariant of SSA: every definition dominates all its uses,
+where a phi input counts as a use at the end of its incoming block. `ir/verify.py` checks it
+after every transformation.
+
+**In the code:** `ir/ssa.py::construct_ssa`, `ir/verify.py::_check_ssa`. Tests:
+`tests/ir/test_ssa.py`, `tests/analysis/test_dominators.py`. Try
+`forgecompile ir examples/gcd.mini`.

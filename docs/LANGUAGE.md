@@ -191,7 +191,11 @@ compared or printed. Parameter array types must match exactly, size included.
 ## 7. Dynamic semantics *(interpreter Phase 3, native code Phase 5)*
 
 **Evaluation order:** left to right. Binary operands, call arguments and array indices are
-evaluated left to right. `&&` and `||` short-circuit.
+evaluated left to right. `&&` and `||` short-circuit. Each index is bounds-checked
+immediately after it is evaluated. In `m[i][j]`, `i` is evaluated and checked before `j` is
+evaluated. In an element assignment `a[e1] = e2`, the target's indices are evaluated and
+checked *before* `e2`. So in `a[f()] = g()`, `f` runs first, and if its result is out of
+range, `g` never runs.
 
 **Integers:** `+ - *` and unary `-` wrap around modulo 2⁶⁴ (two's complement). They never
 trap. `/` truncates toward zero and `%` takes the sign of the dividend (C semantics, matching

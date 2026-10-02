@@ -13,9 +13,9 @@ misconceptions.
 | 3 | Parsing | 1 | ✅ below |
 | 4 | AST | 1 | ✅ below |
 | 5 | Semantic analysis | 2 | ✅ below |
-| 6 | IR | 3 | ⏳ |
-| 7 | CFG | 3 | ⏳ |
-| 8 | SSA | 3 | ⏳ |
+| 6 | IR | 3 | ✅ below |
+| 7 | CFG | 3 | ✅ below |
+| 8 | SSA | 3 | ✅ below |
 | 9 | Data-flow analysis | 4 | ⏳ |
 | 10 | Classical optimizations | 4 | ⏳ |
 | 11 | LLVM | 5 | ⏳ |
@@ -187,3 +187,95 @@ annotations, and that `(i == j) as float` is `bool → float`.
   enforces every rule.
 - "Symbol tables are global dictionaries." Variables are scoped. Only functions are global
   here.
+
+## 6. IR
+
+**What you need to know.**
+- Why compilers have an IR (N+M rather than N×M translators; optimization-friendly shape).
+- Three-address code.
+- Register-based IR, where SSA is a renaming, vs LLVM's "instruction is the value" model
+  (DECISIONS D-016).
+- The memory model: flat buffers, explicit `boundscheck`.
+- Effect classes: why `sdiv` is not pure.
+- What the verifier checks.
+- The two oracles: AST interpreter vs IR interpreter.
+
+See [IR.md](IR.md) and [THEORY §6](THEORY.md#6-intermediate-representations).
+
+**Where in the code.** `ir/instructions.py` (`Opcode` effect properties), `ir/function.py`,
+`lowering.py` (`FunctionLowering.address`, `short_circuit`, `for_stmt`), `ir/verify.py`,
+`ir/interpreter.py`.
+
+**Example.** `forgecompile ir --no-ssa examples/matmul.mini`. Find the flattened
+`i*3 + k` offset computations and the per-dimension bounds checks.
+
+**Likely interview questions**
+- *Why not optimize the AST directly?* Control flow is implicit, intermediate values are
+  unnamed, and names are ambiguous because of shadowing.
+- *Why is integer division not "pure" in your IR?* It can trap, and trapping is observable.
+  Removing an unused `x / 0` would change program behaviour.
+- *How do you know lowering is correct?* Differential testing against an independent AST
+  interpreter, on examples with hand-verified outputs and on 1,000 generated programs.
+- *Why are arrays flattened?* It gives one load per access with computed offsets, which maps
+  directly onto LLVM `getelementptr`.
+
+**Common misconceptions.** "Three-address code means at most three registers." It means each
+instruction has at most two operands and one result. Calls and phis are the usual exceptions.
+
+## 7. CFG
+
+**What you need to know.** Basic blocks; CFG edges from terminators; back edges and loops;
+reverse postorder and why analyses use it; critical edges; unreachable-block removal.
+See [THEORY §7](THEORY.md#7-control-flow-graphs-and-basic-blocks).
+
+**Where in the code.** `analysis/cfg.py`.
+
+**Likely interview questions**
+- *Why are predecessors computed instead of stored?* So that no transformation can leave them
+  stale. The O(n) recomputation is cheap at this scale.
+- *What is a critical edge, and why does it matter?* An edge from a multi-successor block to a
+  multi-predecessor block. Code cannot be placed "on" it without inserting a block.
+
+## 8. SSA
+
+**What you need to know.**
+- The definition of SSA, and phi semantics as parallel copies on edges.
+- Dominance, the dominator tree and dominance frontiers.
+- Why phis belong at the *iterated* DF.
+- Renaming via the dominator tree.
+- Minimal, semi-pruned and pruned SSA.
+- Where `undef` comes from.
+- Why there is no out-of-SSA pass here.
+
+See [THEORY §8](THEORY.md#8-dominance-and-ssa) and [IR.md §9](IR.md#9-ssa-form).
+
+**Where in the code.** `analysis/dominators.py` (`_compute_idoms`, `frontiers`),
+`ir/ssa.py` (`construct_ssa`), `ir/verify.py` (`_check_ssa`).
+
+**Key equations.**
+- `idom(b) = ⋂ over processed preds` (CHK).
+- `DF(a) = { b | ∃ p ∈ preds(b): a dom p  ∧  ¬(a sdom b) }`.
+- Phi sites for x = `DF⁺(defsites(x))`.
+
+**Example.** Compare `forgecompile ir --no-ssa` with `forgecompile ir` on
+`examples/gcd.mini`. Note `%b.1 = phi [%b, entry], [%b.2, while.body]`.
+
+**Likely interview questions**
+- *Why are phis needed?* At a join, the value depends on which edge was taken, and SSA
+  forbids assigning the same register on both paths.
+- *What does a phi compile to?* Copies on the incoming edges. Here, LLVM handles that:
+  register allocation removes most of them.
+- *Why place phis at dominance frontiers?* That is exactly where a definition stops
+  dominating and can meet another one.
+- *What is the dominance property, and how do you check it?* Every definition dominates every
+  use. The verifier checks it after each transformation.
+- *Did your SSA construction ever produce `undef`?* Yes. A variable defined inside a loop gets
+  a dead header phi with an `undef` input from the entry edge. DCE removes it, and the
+  interpreter proves the value is never observed (`test_ssa.py`).
+- *Why no out-of-SSA?* No consumer needs it, because LLVM takes SSA directly (D-017).
+
+**Common misconceptions.**
+- "Phis execute in order." They execute simultaneously on the edge;
+  `test_phis_are_parallel_copies` shows the swap case.
+- "Every variable needs a phi at every join." Only variables with several definitions that
+  are live across blocks. A single-assignment `let` never needs one.

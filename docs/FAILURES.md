@@ -125,3 +125,62 @@ Template:
 - **Fix worked?:** Yes. `checker.py` was restored from a backup and verified with `git diff`.
 - **Lesson:** A test of the tests needs its own sanity check. Verify that the mutation was
   actually applied before interpreting a "pass".
+
+## F-006 — The spec and the reference interpreter disagreed on assignment evaluation order
+
+- **Date / Phase:** 2026-10-02, Phase 3
+- **Attempted:** Designing the lowering of `a[e1] = e2`.
+- **Symptom:** No test failed. While writing the lowering, I noticed that LANGUAGE.md said
+  "left to right", but the AST interpreter evaluated `e2` *before* `e1` and before the bounds
+  check. The difference is observable: in `a[f()] = g()`, both functions may print, and the
+  index may trap before or after `g` runs.
+- **Root cause:** The spec was underspecified for assignments, and the interpreter followed
+  the most convenient order.
+- **Fix:**
+  - The spec now says that the target's indices are evaluated and bounds-checked before the
+    right-hand side (LANGUAGE.md §7).
+  - The AST interpreter and the lowering both follow that order.
+  - Regression tests: `test_left_to_right_evaluation_order`,
+    `test_assignment_target_checked_before_rhs`, `test_store_value_evaluated_after_target_index`.
+- **Lesson:** Two implementations of the same semantics only make useful oracles if the spec
+  pins down *every* observable choice. Writing a second implementation is a good way to find
+  underspecification.
+
+## F-007 — The generator's "unsafe index" case was rejected at compile time
+
+- **Date / Phase:** 2026-10-02, Phase 3
+- **Symptom:** `CompileError: index 10 is out of bounds for an array of length 1` while
+  type-checking a generated program.
+- **Root cause:** The deliberately unsafe index path emitted an integer *literal*, which the
+  type checker rejects statically (D-015). The generator is supposed to always produce
+  well-typed programs.
+- **Fix:** The unsafe path wraps the index as `e + 0`, which is not a literal, so the trap
+  happens at *run time* as intended. 200 generated programs are type-checked in every test
+  run (`test_generated_programs_type_check`).
+- **Lesson:** Static and dynamic checks interact. A generator must know which errors the
+  front end catches early.
+
+## F-008 — Four failing tests, three of them caused by my own wrong premises
+
+- **Date / Phase:** 2026-10-02, Phase 3
+- **Symptom:** 4 of 549 tests failed on the first full run.
+- **Analysis, one by one:**
+  1. *`test_row_argument_uses_ptradd`* (wrong test). I expected lowering to recognise that
+     `m[0]` has offset 0. Lowering is deliberately naive and emits `mul 0, 4` plus `ptradd`.
+     The test now asserts that behaviour, and constant folding (Phase 4) will remove it.
+  2. *SSA undef test* (wrong premise). I assumed a loop-local `let v = i*10` used in another
+     block would get an undef phi. It has only *one* static definition, which dominates all
+     uses, so it needs no phi at all. I rewrote the test with a genuinely multi-assigned
+     loop-local variable, which does produce an `undef` header phi, and added a test for the
+     single-assignment case.
+  3. *Verifier test "ret in the middle"* (real tooling bug). The IR parser used
+     `BasicBlock.append`, which refuses a second terminator, so malformed IR could not even
+     be constructed for the verifier to reject. The parser now inserts without checking, and
+     validation belongs to the verifier.
+  4. *`format_float(5e-7)`* (wrong expectation). I claimed `5e-7` rounds up to `0.000001`.
+     Its exact binary value is `4.99999999999999977e-07`, below the halfway point, so `%.6f`
+     correctly prints `0.000000`. The test now uses both `5e-7 → 0.000000` and
+     `1.5e-6 → 0.000002`, with the exact values verified using `decimal.Decimal`.
+- **Lesson:** Of 4 failures, only one was a code problem. Reading every failure before
+  "fixing" it prevented three bad code changes. Item 4 is directly relevant to Phase 5:
+  native `printf` must match Python's correctly rounded formatting.

@@ -9,8 +9,11 @@ Currently available:
     forgecompile lex FILE            token stream
     forgecompile parse FILE          AST dump (--format: canonical source)
     forgecompile check FILE          parse + type-check (--dump: typed AST)
+    forgecompile ir FILE             SSA IR (--no-ssa: IR straight from lowering)
+    forgecompile run FILE            execute (--engine ir|ir-nossa|ast, --stats)
 
 Exit codes: 0 success, 1 compile error (diagnostics on stderr), 2 usage error.
+`run` exits with the program's own exit status (101 on a MiniLang runtime error).
 """
 
 from __future__ import annotations
@@ -21,7 +24,7 @@ import sys
 from collections.abc import Sequence
 
 from forgecompile import __version__
-from forgecompile.cli import frontend_commands
+from forgecompile.cli import frontend_commands, ir_commands
 from forgecompile.cli.common import EXIT_COMPILE_ERROR, EXIT_OK, EXIT_USAGE, CliError
 from forgecompile.utils.environment import collect_environment
 from forgecompile.utils.logging import configure_logging
@@ -70,6 +73,7 @@ def build_parser() -> argparse.ArgumentParser:
     info.set_defaults(handler=_cmd_info)
 
     frontend_commands.register(subparsers)
+    ir_commands.register(subparsers)
     return parser
 
 
