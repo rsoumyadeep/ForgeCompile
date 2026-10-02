@@ -37,7 +37,8 @@ def _utc_now() -> datetime:
 
 
 def _write_json(path: Path, obj: Any) -> None:
-    path.write_text(json.dumps(obj, indent=2, sort_keys=True, default=str) + "\n", "utf-8")
+    text = json.dumps(obj, indent=2, sort_keys=True, default=str) + "\n"
+    path.write_text(text, encoding="utf-8", newline="\n")  # LF on every OS: diffable results
 
 
 @dataclass

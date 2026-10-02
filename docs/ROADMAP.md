@@ -12,7 +12,7 @@ Status legend: ✅ done · 🔨 in progress · ⏳ not started · ⚠️ done wi
 | 1 | MiniLang frontend (lexer, parser, AST) | ✅ | [PHASE_1](phases/PHASE_1.md) |
 | 2 | Semantic analysis | ✅ | [PHASE_2](phases/PHASE_2.md) |
 | 3 | IR, reference interpreter, CFG, SSA | ✅ | [PHASE_3](phases/PHASE_3.md) |
-| 4 | Classical optimization engine | ⏳ | — |
+| 4 | Classical optimization engine | ✅ | [PHASE_4](phases/PHASE_4.md) |
 | 5 | LLVM backend + native executables | ⏳ | — |
 | 6 | Benchmarking infrastructure | ⏳ | — |
 | 7 | ML-based pass selection | ⏳ | — |
@@ -92,7 +92,7 @@ types.
 - [x] Beyond the original plan: a reference AST interpreter (D-019) and a random program
   generator (D-020).
 
-## Phase 4 — Classical optimization engine
+## Phase 4 — Classical optimization engine ✅
 
 **Objective:** a pass framework with a common interface and configurable pipelines.
 
@@ -103,9 +103,16 @@ types.
   strength reduction, LICM, inlining, loop unrolling.
 - Per-pass statistics, which become ML features and rewards later.
 
-**Acceptance:** every pass has before/after unit tests. Differential testing checks that
-optimized output equals unoptimized output across all programs, including randomly generated
-ones. Each pass is documented in `docs/OPTIMIZATIONS.md`.
+**Acceptance** (all met)
+- [x] 11 passes, each with before/after IR unit tests, including negative cases.
+- [x] Differential testing: single passes, presets and random orderings preserve behaviour.
+  This runs in CI (`test_pass_differential.py`) and at scale (`scripts/fuzz_passes.py`:
+  0 failures).
+- [x] `--passes a,b,c`, `-O 0/1/2` and pipeline files.
+- [x] Every pass documented in `docs/OPTIMIZATIONS.md` with real before/after IR.
+- [x] EXP-001 measured every pass's effect, including negative results.
+- Not implemented, deliberately: loop unrolling, load CSE/LICM, loop rotation (see
+  OPTIMIZATIONS.md §5).
 
 ## Phase 5 — LLVM backend
 

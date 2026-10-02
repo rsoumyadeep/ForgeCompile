@@ -11,9 +11,9 @@ MiniLang source ─► lexer ─► parser ─► AST ─► semantic analysis
         ─► LLVM IR ─► native executable
 ```
 
-> **Project status:** Phases 0–3 are complete: foundation, MiniLang frontend, semantic
-> analysis, and the IR (lowering, SSA construction, verifier, interpreters, CFG/dominators).
-> Optimization passes, the LLVM backend and the ML/RL components are not implemented yet. See [docs/ROADMAP.md](docs/ROADMAP.md). This README only describes
+> **Project status:** Phases 0–4 are complete: foundation, MiniLang frontend, semantic
+> analysis, the SSA IR, and the classical optimization engine (11 passes, pass manager,
+> EXP-001). The LLVM backend, benchmarks and ML/RL components are not implemented yet. See [docs/ROADMAP.md](docs/ROADMAP.md). This README only describes
 > things that already exist; nothing here is aspirational.
 
 ## Quick start
@@ -30,7 +30,10 @@ uv run forgecompile parse --format examples/fibonacci.mini  # canonical source
 uv run forgecompile check examples/fibonacci.mini           # type-check
 uv run forgecompile ir examples/fibonacci.mini              # SSA IR
 uv run forgecompile run --stats examples/fibonacci.mini     # execute + instruction counts
+uv run forgecompile opt -O 2 --stats examples/matmul.mini   # optimized IR + per-pass report
 ```
+
+First measured results (IR-interpreter cost, not native runtime yet): [docs/RESULTS.md](docs/RESULTS.md).
 
 See [docs/HOW_TO_RUN.md](docs/HOW_TO_RUN.md) for details.
 

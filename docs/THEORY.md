@@ -14,8 +14,8 @@ textbook material without a code link.
 | 6. Intermediate representations | 3 | ✅ |
 | 7. Control-flow graphs and basic blocks | 3 | ✅ |
 | 8. Dominance and SSA | 3 | ✅ |
-| 9. Data-flow analysis (lattices, fixpoints) | 4 | ⏳ |
-| 10. Why each optimization is valid | 4 | ⏳ |
+| 9. Data-flow analysis (lattices, fixpoints) | 4 | ✅ |
+| 10. Why each optimization is valid | 4 | ✅ |
 | 11. LLVM IR | 5 | ⏳ |
 | 12. Measuring performance | 6 | ⏳ |
 | 13. Why pass ordering is hard (the phase-ordering problem) | 7 | ⏳ |
@@ -331,3 +331,76 @@ after every transformation.
 **In the code:** `ir/ssa.py::construct_ssa`, `ir/verify.py::_check_ssa`. Tests:
 `tests/ir/test_ssa.py`, `tests/analysis/test_dominators.py`. Try
 `forgecompile ir examples/gcd.mini`.
+
+## 9. Data-flow analysis: lattices and fixed points
+
+**The general shape.** A data-flow analysis computes, for each program point, a fact taken
+from a **lattice** (a partially ordered set of facts with a *meet*, the "least upper bound"
+of information). Each instruction has a **transfer function** f mapping input facts to
+output facts. At join points the facts from all predecessors are combined with meet. The
+analysis iterates
+
+```
+OUT[b] = f_b( ⊓_{p ∈ preds(b)} OUT[p] )
+```
+
+until nothing changes.
+
+**Why it terminates.** Two conditions:
+1. The transfer functions are **monotone**: more input information never gives less output
+   information.
+2. The lattice has **finite height**: each value can only move down a bounded number of
+   times.
+
+Together these guarantee that iteration reaches a fixed point. Starting from the
+*optimistic* top element gives the **maximal** fixed point, i.e. the most precise sound
+answer.
+
+**SCCP as the worked example** (`optimization/passes/sccp.py`).
+- Lattice per register: `TOP > {…, -1, 0, 1, …} > BOTTOM`, with height 3, so each register
+  changes at most twice.
+- Meet: `TOP ⊓ x = x`; `c ⊓ c = c`; `c1 ⊓ c2 = BOTTOM` for `c1 ≠ c2`.
+- Transfer: fold the operation if all inputs are constants; BOTTOM if any input is BOTTOM.
+- The **conditional** part: phis meet only values arriving over *executable* edges, and a
+  branch on a constant marks only one edge executable. Optimism here is what proves the
+  loop-carried constant in OPTIMIZATIONS.md.
+- **Sparseness**: SSA means each register has one definition, so the facts are attached to
+  registers rather than to (variable × program point) pairs. When a value changes, only its
+  users are revisited, via def-use edges.
+
+**Other analyses in the code, framed the same way.**
+
+| Analysis | Lattice / fact | Direction | Where |
+|----------|----------------|-----------|-------|
+| Dominators | sets of blocks, meet = intersection | forward | `analysis/dominators.py` (CHK solves it on the dominator tree) |
+| Liveness, as used by DCE | live / dead per instruction | backward (along def-use) | `passes/dce.py` (mark phase) |
+| Reachability | reachable or not | forward | `analysis/cfg.py` |
+| Completes-normally (missing return) | bool per statement | AST, structural | `semantic/control_flow.py` |
+
+## 10. Why each optimization is valid
+
+Each pass's correctness rests on a small number of arguments, which recur throughout:
+
+1. **Value equality plus dominance makes substitution valid.** In SSA, replacing every use of
+   `%r` with a value v is correct if v always equals `%r` and v's definition dominates
+   every use. This argument justifies copyprop, trivial-phi removal, CSE, constant
+   propagation and strength reduction. When the dominance half was forgotten in one case
+   (an `undef` phi input), the verifier caught it (FAILURES F-009).
+2. **Observable behaviour is the contract.** Only `(stdout, exit status)` must be
+   preserved. Since MiniLang defines traps as observable, any instruction that *may trap*
+   is treated like an output statement: never deleted as unused, never hoisted
+   speculatively. C compilers may delete `x / y` when unused, because division by zero is
+   undefined behaviour in C.
+3. **Speculation needs safety.** Moving code to a point where it executes on more paths (LICM)
+   is only valid for instructions with no effect, no trap and no dependence on memory.
+   *Validity* is separate from *profitability*: LICM is always correct, but can be slower
+   (EXP-001, 1.87× worst case).
+4. **Floating-point identities must hold for every IEEE value.** `x + 0.0 ≠ x` when x = −0.0;
+   `x * 0.0 ≠ 0.0` when x is NaN or inf; `x - x ≠ 0.0` when x is inf. The `simplify` pass only
+   uses identities that are exact over all doubles, including NaN and signed zero.
+5. **Loop facts need an induction argument.** Strength reduction maintains the invariant
+   `%s == %i·k` (holding modulo 2⁶⁴). Bounds-check elimination proves `0 ≤ %i < N` from the
+   loop guard plus a no-overflow condition on the step.
+
+**In the code:** each pass's docstring states its correctness argument;
+[OPTIMIZATIONS.md](OPTIMIZATIONS.md) collects them with examples.

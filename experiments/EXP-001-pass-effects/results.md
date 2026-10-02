@@ -1,0 +1,34 @@
+| configuration | group | steps ratio | cost ratio | static ratio | cost best / worst | compile ms |
+|---|---|---:|---:|---:|---:|---:|
+| bce | examples | 1.000 | 1.000 | 1.000 | 1.000 / 1.000 | 0.15 |
+| bce | generated | 1.000 | 1.000 | 1.000 | 1.000 / 1.000 | 0.27 |
+| constfold | examples | 0.988 | 0.995 | 0.937 | 0.981 / 1.000 | 0.20 |
+| constfold | generated | 0.514 | 0.627 | 0.446 | 0.152 / 0.963 | 0.69 |
+| copyprop | examples | 0.855 | 0.956 | 0.836 | 0.918 / 0.997 | 0.08 |
+| copyprop | generated | 0.859 | 0.976 | 0.866 | 0.884 / 1.000 | 0.22 |
+| cse | examples | 0.983 | 0.990 | 0.989 | 0.964 / 1.000 | 0.18 |
+| cse | generated | 0.972 | 0.993 | 0.973 | 0.930 / 1.000 | 0.62 |
+| dce | examples | 1.000 | 1.000 | 0.979 | 1.000 / 1.000 | 0.08 |
+| dce | generated | 0.886 | 0.948 | 0.852 | 0.462 / 1.000 | 0.23 |
+| inline | examples | 1.000 | 0.961 | 1.524 | 0.821 / 1.000 | 0.15 |
+| inline | generated | 1.001 | 0.991 | 1.078 | 0.876 / 1.012 | 0.11 |
+| licm | examples | 0.985 | 0.986 | 1.000 | 0.917 / 1.000 | 0.31 |
+| licm | generated | 0.974 | 0.978 | 1.000 | 0.617 / 1.871 | 0.62 |
+| sccp | examples | 0.988 | 0.995 | 0.937 | 0.981 / 1.000 | 0.40 |
+| sccp | generated | 0.502 | 0.622 | 0.382 | 0.152 / 0.963 | 1.23 |
+| simplify | examples | 1.000 | 1.000 | 1.000 | 1.000 / 1.000 | 0.12 |
+| simplify | generated | 0.971 | 0.968 | 0.970 | 0.574 / 1.000 | 0.67 |
+| simplifycfg | examples | 0.976 | 0.988 | 0.971 | 0.968 / 1.000 | 0.09 |
+| simplifycfg | generated | 0.966 | 0.993 | 0.904 | 0.942 / 1.000 | 0.28 |
+| strength | examples | 1.000 | 1.000 | 1.000 | 1.000 / 1.000 | 0.33 |
+| strength | generated | 1.000 | 1.000 | 1.000 | 1.000 / 1.000 | 0.62 |
+| preset:O1 | examples | 0.829 | 0.942 | 0.779 | 0.886 / 0.996 | 0.54 |
+| preset:O1 | generated | 0.360 | 0.576 | 0.286 | 0.143 / 0.932 | 1.44 |
+| preset:O2 | examples | 0.737 | 0.828 | 1.039 | 0.607 / 0.996 | 2.58 |
+| preset:O2 | generated | 0.294 | 0.537 | 0.225 | 0.143 / 0.912 | 3.53 |
+| copyprop+bce | examples | 0.820 | 0.918 | 0.814 | 0.774 / 0.997 | 0.23 |
+| copyprop+bce | generated | 0.859 | 0.976 | 0.866 | 0.884 / 1.000 | 0.49 |
+| copyprop+strength | examples | 0.855 | 0.951 | 0.839 | 0.913 / 0.997 | 0.40 |
+| copyprop+strength | generated | 0.859 | 0.976 | 0.867 | 0.884 / 1.006 | 0.84 |
+| copyprop+licm | examples | 0.848 | 0.945 | 0.836 | 0.871 / 0.997 | 0.33 |
+| copyprop+licm | generated | 0.837 | 0.956 | 0.866 | 0.610 / 1.833 | 0.81 |

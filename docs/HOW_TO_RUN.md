@@ -36,6 +36,10 @@ uv run forgecompile ir examples/gcd.mini               # SSA IR
 uv run forgecompile run examples/gcd.mini              # execute (SSA IR interpreter)
 uv run forgecompile run --engine ast examples/gcd.mini # execute (reference AST interpreter)
 uv run forgecompile run --stats examples/gcd.mini      # + dynamic instruction counts (stderr)
+uv run forgecompile passes                             # list optimization passes and presets
+uv run forgecompile opt -O 2 --stats examples/gcd.mini # optimized IR + per-pass report
+uv run forgecompile opt --passes copyprop,bce examples/matmul.mini
+uv run forgecompile run -O 2 examples/matmul.mini      # execute optimized IR
 ```
 
 `run` exits with the program's own exit status: main's return value mod 256, or 101 after a
@@ -48,4 +52,13 @@ Syntax and type errors are printed to stderr with source excerpts, and the exit 
 
 ## 4. Reproduce experiments
 
-_Available from Phase 6 onward. Each experiment will have a single command listed here._
+Each experiment has a single command. Its run directory (`experiments/runs/<ID>_<time>/`)
+records the config, seed, environment and git commit. A curated copy of the results is
+committed in `experiments/<ID>/`.
+
+| Experiment | Command | Approx. time (laptop) |
+|------------|---------|----------------------|
+| EXP-001 per-pass effects | `uv run python experiments/EXP-001-pass-effects/run.py --generated 200 --seed 0 --repeats 3` | ~8 min |
+
+Optimization-correctness fuzzing (not an experiment, a test at scale):
+`uv run python scripts/fuzz_passes.py --programs 300 --sequences 3` (~2 min).

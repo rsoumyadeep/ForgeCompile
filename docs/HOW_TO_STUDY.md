@@ -16,8 +16,8 @@ misconceptions.
 | 6 | IR | 3 | ✅ below |
 | 7 | CFG | 3 | ✅ below |
 | 8 | SSA | 3 | ✅ below |
-| 9 | Data-flow analysis | 4 | ⏳ |
-| 10 | Classical optimizations | 4 | ⏳ |
+| 9 | Data-flow analysis | 4 | ✅ below |
+| 10 | Classical optimizations | 4 | ✅ below |
 | 11 | LLVM | 5 | ⏳ |
 | 12 | Benchmarking | 6 | ⏳ |
 | 13 | ML for compiler optimization | 7 | ⏳ |
@@ -279,3 +279,70 @@ See [THEORY §8](THEORY.md#8-dominance-and-ssa) and [IR.md §9](IR.md#9-ssa-form
   `test_phis_are_parallel_copies` shows the swap case.
 - "Every variable needs a phi at every join." Only variables with several definitions that
   are live across blocks. A single-assignment `let` never needs one.
+
+## 9. Data-flow analysis
+
+**What you need to know.** Lattices, meet, transfer functions, monotonicity, finite height, and
+why fixed-point iteration terminates. Optimistic vs pessimistic initialization. SCCP's
+lattice and its two worklists. Why SSA makes analyses *sparse*. See
+[THEORY §9](THEORY.md#9-data-flow-analysis-lattices-and-fixed-points).
+
+**Where in the code.** `optimization/passes/sccp.py` (`_meet`, `_SCCPSolver.solve`,
+`evaluate`), and `passes/dce.py` (mark phase as a backward liveness).
+
+**Key equation.** `OUT[b] = f_b(⊓ over preds of OUT[p])`, iterated to a fixed point.
+
+**Example.** The `sccp` example in OPTIMIZATIONS.md: `x` is proven constant only by
+assuming the `if` body is dead, which in turn is proven using `x`.
+
+**Likely interview questions**
+- *Why does SCCP terminate?* Lattice height 3, so each register lowers at most twice, and
+  each edge becomes executable at most once.
+- *Why is SCCP stronger than constant folding plus DCE run to a fixed point?* Pessimistic
+  iteration never assumes a branch is dead. Optimistic iteration assumes code is dead until
+  shown otherwise, which catches mutually dependent facts.
+- *What went wrong in your SCCP the first time?* Deletion safety was judged before
+  substitution, so dead divisions survived. An experiment exposed it (F-010).
+
+**Common misconceptions.** "A more powerful analysis always gives better code." Run 1 of
+EXP-001 showed SCCP losing to constfold, because the *rewrite* phase was incomplete. The
+analysis alone is not the optimization.
+
+## 10. Classical optimizations
+
+**What you need to know.** For each of the 11 passes:
+- what it does, and the one-line correctness argument;
+- what it must *not* do: trap deletion, IEEE identities, speculating loads;
+- the pass-manager design: one interface, verification after each pass, statistics;
+- the measured effects and phase-ordering dependencies (EXP-001).
+
+See [OPTIMIZATIONS.md](OPTIMIZATIONS.md) and [THEORY §10](THEORY.md#10-why-each-optimization-is-valid).
+
+**Where in the code.** `optimization/pass_manager.py`, `optimization/utils.py`,
+`optimization/passes/*.py`, `analysis/loops.py`. Tests: `tests/optimization/`.
+
+**Example.** `forgecompile opt --stats -O 2 examples/matmul.mini`. Read the per-pass report,
+then compare `forgecompile run --stats` with and without `-O 2`.
+
+**Likely interview questions**
+- *Why can't you just apply every optimization?* Passes interact: some enable others
+  (copyprop → bce), some are harmful in context (LICM on zero-trip loops: 1.87× worse), and
+  inlining trades code size for speed.
+- *How do you know your optimizations are correct?*
+  - The verifier runs after every pass.
+  - IR-level unit tests include negative cases.
+  - Differential testing covers single passes, presets and random orderings (thousands of
+    programs).
+  - The guards were mutation-tested.
+- *Why is DCE not allowed to remove an unused division?* It could trap, and traps are
+  observable in MiniLang.
+- *Why isn't `x + 0.0 → x` valid?* `-0.0 + 0.0 = +0.0`.
+- *What does LICM require of an instruction?* Speculatability: no side effects, no trap, no
+  memory read. Plus a preheader to put it in.
+- *Your strength reduction: is it worth it?* It saves about 0.5% of interpreter cost on the
+  examples. Natively it is probably close to nothing, because `imul` is cheap and LLVM does
+  its own loop strength reduction. That honest answer is what EXP-001 supports.
+
+**Common misconceptions.**
+- "Optimizations always make code faster." EXP-001 has counterexamples.
+- "SSA makes every substitution valid." The replacement must also dominate the uses (F-009).

@@ -128,16 +128,18 @@ def main() -> None:
             ]
             lines.append("| " + " | ".join(cells) + " |")
     markdown = "\n".join(lines) + "\n"
-    (run.run_dir / "results.md").write_text(markdown, "utf-8")
-    # Curated copy, committed alongside the script (experiments/README.md).
-    (HERE / "results.md").write_text(markdown, "utf-8")
-    (HERE / "results.json").write_text(json.dumps(table, indent=2, sort_keys=True) + "\n", "utf-8")
-    (HERE / "metadata.json").write_text(
-        json.dumps(run.metadata, indent=2, default=str) + "\n", "utf-8"
-    )
+    (run.run_dir / "results.md").write_text(markdown, encoding="utf-8", newline="\n")
+    # Finalize *before* copying metadata, so the curated copy says "completed".
     run.finalize(
         "completed", {"configurations": len(configs), "programs": sum(map(len, groups.values()))}
     )
+    # Curated copy, committed alongside the script (experiments/README.md).
+    for name, text in (
+        ("results.md", markdown),
+        ("results.json", json.dumps(table, indent=2, sort_keys=True) + "\n"),
+        ("metadata.json", json.dumps(run.metadata, indent=2, sort_keys=True, default=str) + "\n"),
+    ):
+        (HERE / name).write_text(text, encoding="utf-8", newline="\n")
     print(markdown)
     print(f"run directory: {run.run_dir}")
 

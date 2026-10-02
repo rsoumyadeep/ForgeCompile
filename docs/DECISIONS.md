@@ -318,3 +318,72 @@ one and links back to it.
 - The interpreter now reports per-opcode dynamic counts and a weighted cost
   (`DEFAULT_COST_MODEL`). The weights are *assumed* rough latencies. Phase 6 must measure
   their correlation with native runtime before ML/RL rewards rely on them.
+
+## D-021 — Pass framework: one interface, verification after every pass
+
+- **Date:** 2026-10-02 (Phase 4)
+- **Alternatives:**
+  - an LLVM-style new pass manager with analysis caching and invalidation;
+  - ad-hoc function calls with no framework.
+- **Chosen:** A minimal `Pass` / `FunctionPass` interface with a name registry. The
+  `PassManager` runs named pipelines and **verifies SSA after each pass by default**. Analyses
+  (dominators, loops) are recomputed by the passes that need them; nothing is cached.
+- **Why:**
+  - The ML/RL phases need passes as uniform, named actions with statistics.
+  - Verification after each pass turns a miscompile into an immediate, attributed error
+    (F-009 was caught this way).
+  - Recomputing analyses costs little at MiniLang sizes and removes a whole class of
+    stale-analysis bugs.
+- **Trade-off:** Compile time is higher than with cached analyses. Verification can be turned
+  off (`verify=False`) for timing measurements.
+
+## D-022 — One shared evaluator for interpreter and constant folding
+
+- **Date:** 2026-10-02 (Phase 4)
+- **Chosen:** `ir/evaluate.py` is used by both the IR interpreter and `fold()`.
+- **Why:** A constant folder that disagrees with the runtime is a classic miscompilation
+  source. Sharing the code makes such disagreement impossible. The independent AST
+  interpreter still checks both against the specification.
+
+## D-023 — Loop passes assume canonical (copy-propagated) IR
+
+- **Date:** 2026-10-02 (Phase 4)
+- **Context:** `bce` and `strength` recognise induction variables as
+  `phi [init, pre], [phi + step, latch]`. Straight after SSA construction the latch value
+  is a `copy`, so they do nothing (EXP-001: ratio 1.000).
+- **Alternatives:** make IV detection look through copies; run copyprop inside these passes.
+- **Chosen:** Keep the assumption, as LLVM passes assume `instcombine` has canonicalized the
+  IR. Document it, and run copyprop before them in O2.
+- **Why:** Each pass stays simple and single-purpose. The dependency is also a *real*
+  phase-ordering effect for the ML/RL schedulers to discover, measured rather than designed
+  away.
+- **Trade-off:** A badly ordered pipeline wastes these passes. That is the problem learned
+  scheduling is meant to address.
+
+## D-024 — LICM hoists speculatively (no loop rotation); the measured downside is kept
+
+- **Date:** 2026-10-02 (Phase 4)
+- **Context:** EXP-001 found one generated program where LICM increased weighted cost
+  1.87×. Hoisted instructions came from loop bodies that never execute (zero-trip loops).
+- **Alternatives:**
+  1. Loop rotation: guard the preheader with the loop condition, as LLVM does.
+  2. Only hoist from blocks that execute on every iteration, plus constant trip counts ≥ 1.
+  3. Keep classic speculative LICM.
+- **Chosen:** Option 3 for now. Correctness is unaffected (only speculatable instructions
+  move), and the geometric mean still improves (0.978).
+- **Why:**
+  - Rotation is a significant CFG transformation with its own correctness burden.
+  - The phenomenon is a realistic profitability question ("is this loop likely to run?")
+    that the learned schedulers can be evaluated on.
+- **Revisit:** if native benchmarks (Phase 6) show LICM regressions on real kernels, implement
+  rotation.
+
+## D-025 — Inlining heuristic: size threshold 40, never recursive
+
+- **Date:** 2026-10-02 (Phase 4)
+- **Chosen:** Inline any call to a non-recursive callee of at most 40 static instructions. Any
+  function on a call-graph cycle is excluded, which guarantees termination.
+- **Why:** This is the simplest heuristic that is safe and useful. The constant is named
+  (`INLINE_THRESHOLD`), so later experiments can vary it.
+- **Measured trade-off (EXP-001):** static size grows 1.52× on the examples, cost drops 3.9%,
+  and the worst case is slightly worse (1.012).

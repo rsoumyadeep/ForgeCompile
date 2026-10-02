@@ -184,3 +184,62 @@ Template:
 - **Lesson:** Of 4 failures, only one was a code problem. Reading every failure before
   "fixing" it prevented three bad code changes. Item 4 is directly relevant to Phase 5:
   native `printf` must match Python's correctly rounded formatting.
+
+## F-009 — copyprop broke the SSA dominance property (caught by the verifier)
+
+- **Date / Phase:** 2026-10-02, Phase 4
+- **Attempted:** Trivial-phi elimination in copyprop: replace `%x = phi [...]` by `v` when all
+  inputs are `v`, ignoring `undef` inputs and self-references.
+- **Symptom:** On the first differential run, 10 of 157 programs failed under copyprop alone
+  with `IR invalid after pass 'copyprop': definition of %or.2.6 does not dominate its use`.
+  The other six passes were clean.
+- **Root cause:** For `%x = phi [undef, entry], [%v, latch]` the helper returned `%v`.
+  Ignoring undef is a legal *value* refinement, but `%v` is defined inside the loop and does
+  not dominate the header. My dominance argument ("v reaches every edge, so it dominates the
+  phi") silently assumed every input was `%v`. Constant-folding callers were unaffected,
+  because constants dominate everything.
+- **Debugging process:** The verifier named the pass and the offending register. Printing
+  one failing function showed the undef-plus-loop-value phi shape. The bug followed directly
+  from comparing that shape against the dominance argument in the docstring.
+- **Fix:** `trivial_phi_value` may ignore undef inputs only when the unique value is a
+  constant. Regression test: `test_copyprop_keeps_phi_with_undef_and_loop_value`. The
+  mutation test that re-introduces the bug is caught.
+- **Fix worked?:** Yes. 0 failures in 307 programs × 11 passes plus 921 random orderings.
+- **Lesson:** "Same value" and "valid replacement" are different claims in SSA. The second
+  needs dominance. Verifying after every pass is what made this a 5-minute fix instead of a
+  mystery wrong output weeks later.
+
+## F-010 — SCCP kept dead divisions and constant bounds checks (found by an experiment)
+
+- **Date / Phase:** 2026-10-02, Phase 4
+- **Symptom:** EXP-001 run 1 showed `constfold` beating `sccp` on generated programs (cost
+  0.627 vs 0.712), even though SCCP finds a superset of constant registers. No test failed:
+  the output was correct, just less optimized.
+- **Debugging process:** Summed the per-opcode dynamic counts of sccp minus constfold over 200
+  programs: +393 `srem`, +337 `sdiv`, +333 `boundscheck`.
+- **Root cause:**
+  1. The rewrite decided `is_removable_if_unused` *before* substituting constants. A division
+     whose divisor was a register *known* to be 7 still looked like "divide by a register
+     that might be zero", so it was kept even though its result was unused.
+  2. SCCP never folded in-range constant bounds checks (constfold did).
+- **Fix:** Substitute first, then delete; fold constant bounds checks. Regression test:
+  `test_sccp_deletes_dead_division_and_constant_bounds_check`.
+- **Fix worked?:** Yes. In EXP-001 run 2, sccp reaches 0.622 (now ≤ constfold). Only sccp's rows
+  changed between the runs, which was verified programmatically.
+- **Lesson:** Missed optimizations are invisible to correctness testing. Measuring passes
+  against each other, and taking an "impossible" ranking seriously, found it. Run 1's results
+  are kept in the repository.
+
+## F-011 — Two documentation/infrastructure errors caught before commit
+
+- **Date / Phase:** 2026-10-02, Phase 4
+1. **An unsupported claim in OPTIMIZATIONS.md.** I wrote that running `strength` before `bce`
+   removes fewer bounds checks, and labelled it "measured, EXP-001". It was not measured: I
+   had inferred it from one example. Measuring it on all 7 examples showed **no difference**
+   between the two orders, and reasoning confirmed bce cannot handle `a[4*i]` in either
+   order. The claim was deleted. *Lesson: every quantitative statement in the docs needs a
+   pointer to data; check before labelling something "measured".*
+2. **Curated experiment metadata said `"status": "running"`.** `run.py` copied the metadata
+   before calling `finalize()`. Fixed the ordering, and restored the curated copies from the
+   run directories' final `metadata.json` (status `completed`, clean commits `6f13055` and
+   `453feab`). Experiment outputs are now also forced to LF line endings on Windows.

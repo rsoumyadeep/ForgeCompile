@@ -3,7 +3,7 @@
     "cpu_count": 8,
     "forgecompile_version": "0.0.1",
     "git": {
-      "commit": "6f130558db95018ed183b243b59837801dd14666",
+      "commit": "453feabe05e7a0fc1a701d4ff81a5f8d892abc3c",
       "dirty": false
     },
     "platform": {
@@ -40,9 +40,9 @@
     ]
   },
   "experiment_id": "EXP-001-pass-effects",
-  "finished_utc": "2026-10-02T12:15:27.714317+00:00",
+  "finished_utc": "2026-10-02T12:23:09.312114+00:00",
   "seed": 0,
-  "started_utc": "2026-10-02T12:12:55.425278+00:00",
+  "started_utc": "2026-10-02T12:20:40.339593+00:00",
   "status": "completed",
   "summary": {
     "configurations": 16,

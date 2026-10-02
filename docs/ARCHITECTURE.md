@@ -33,9 +33,9 @@ directly from text.
 | `runtime/` | 3 | exact MiniLang arithmetic semantics; reference AST interpreter | ✅ |
 | `lowering.py` | 3 | type-checked AST → pre-SSA IR | ✅ |
 | `ir/` | 3 | values, instructions, blocks/functions, printer, parser, verifier, interpreter + cost model, SSA construction | ✅ |
-| `analysis/` | 3–4 | CFG queries, dominator tree, dominance frontiers (✅); liveness, loops (Phase 4) | 🔨 |
+| `analysis/` | 3–4 | CFG queries, dominator tree, dominance frontiers, natural loops, preheaders, induction variables | ✅ |
 | `testing/` | 3 | random well-typed terminating program generator | ✅ |
-| `optimization/` | 4 | pass interface, pass manager, passes | ⏳ |
+| `optimization/` | 4 | pass interface and registry, pass manager (verify after each pass), presets, utilities, 11 passes | ✅ |
 | `backend/` | 5 | LLVM IR emission, native linking | ⏳ |
 | `benchmarks` (runner) | 6 | measurement harness | ⏳ |
 | `ml/` | 7 | features, datasets, models, baselines | ⏳ |
@@ -92,6 +92,19 @@ AST ──AstInterpreter── reference behaviour (differential tests compare a
 
 - `driver.build_ir(text, ssa=True)` runs the whole chain, with verification after each step.
 - See [IR.md](IR.md) for the instruction set, memory model, effect classes and SSA design.
+
+## Optimization (Phase 4)
+
+```
+SSA IR ──PassManager([names])──► optimized SSA IR + PipelineReport (per-pass stats)
+          │  after each pass: verify_module(ssa=True)
+          └─ passes: constfold sccp copyprop dce simplify simplifycfg cse licm strength bce inline
+```
+
+- Constant folding and the interpreter share `ir/evaluate.py` (D-022).
+- Loop passes assume copy-propagated IR (D-023), which is a measured phase-ordering
+  dependency.
+- See [OPTIMIZATIONS.md](OPTIMIZATIONS.md).
 
 ## Key design choices
 
