@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
 from forgecompile.backend.native import build_and_run
 from forgecompile.cli.common import (
@@ -39,6 +40,50 @@ def selected_pipeline(args: argparse.Namespace) -> list[str]:
         raise CliError(str(exc)) from None
 
 
+DEFAULT_DQN_CHECKPOINT = (
+    Path(__file__).resolve().parents[3]
+    / "experiments"
+    / "EXP-006-rl-scheduling"
+    / "checkpoints"
+    / "dqn_seed0.npz"
+)
+
+
+def scheduled_pipeline(args: argparse.Namespace, source_text: str, name: str) -> list[str]:
+    """The pass list: from --passes/-O, or decided per program by --schedule (a policy).
+
+    The policy looks at this program's IR and picks passes one at a time; the
+    resulting list is then applied like any other pipeline, and printed to stderr.
+    """
+    if args.schedule is None:
+        return selected_pipeline(args)
+    if args.passes is not None or args.opt_level is not None:
+        raise CliError("use either --schedule or --passes/-O, not both")
+    from forgecompile.ml.dataset import CostEvaluator
+    from forgecompile.ml.policies import OraclePolicy, Policy, schedule
+
+    policy: Policy
+    if args.schedule == "oracle":
+        policy = OraclePolicy(CostEvaluator("cost"))
+    else:
+        from forgecompile.ml.features import FEATURE_NAMES
+        from forgecompile.rl.dqn import DQNAgent, DQNPolicy
+        from forgecompile.rl.env import ENV_ACTIONS
+
+        checkpoint = Path(args.checkpoint) if args.checkpoint else DEFAULT_DQN_CHECKPOINT
+        if not checkpoint.exists():
+            raise CliError(f"no DQN checkpoint at {checkpoint} (train one with EXP-006)")
+        n = len(ENV_ACTIONS)
+        policy = DQNPolicy(DQNAgent.load(checkpoint, len(FEATURE_NAMES) + 1 + n, n))
+    result = schedule(policy, build_ir(source_text, name), max_steps=args.max_passes)
+    print(
+        f"schedule ({args.schedule}): {','.join(result.actions) or '(none)'} "
+        f"[decided in {1000 * result.decision_seconds:.1f} ms]",
+        file=sys.stderr,
+    )
+    return result.actions
+
+
 def _optimized(source_text: str, name: str, pipeline: list[str]) -> tuple[Module, PipelineReport]:
     module = build_ir(source_text, name)
     return module, optimize(module, pipeline)
@@ -56,6 +101,16 @@ def add_pipeline_options(parser: argparse.ArgumentParser) -> None:
         choices=sorted(p.removeprefix("O") for p in PRESETS),
         help="optimization preset, written like GCC: -O0 (none), -O1, -O2",
     )
+    parser.add_argument(
+        "--schedule",
+        choices=["oracle", "dqn"],
+        help="choose passes per program: 'oracle' (greedy, applies and measures every pass) "
+        "or 'dqn' (the trained RL policy); the chosen list is printed to stderr",
+    )
+    parser.add_argument("--checkpoint", help="DQN checkpoint (.npz) for --schedule dqn")
+    parser.add_argument(
+        "--max-passes", type=int, default=12, help="pass budget for --schedule (default 12)"
+    )
 
 
 def _cmd_ir(args: argparse.Namespace) -> int:
@@ -71,9 +126,9 @@ def _cmd_ir(args: argparse.Namespace) -> int:
 
 def _cmd_opt(args: argparse.Namespace) -> int:
     source = read_source(args.file)
-    pipeline = selected_pipeline(args)
 
     def step() -> int:
+        pipeline = scheduled_pipeline(args, source.text, source.name)
         module, report = _optimized(source.text, source.name, pipeline)
         print(format_module(module), end="")
         if args.stats:
@@ -95,11 +150,12 @@ def _cmd_passes(args: argparse.Namespace) -> int:
 
 def _cmd_run(args: argparse.Namespace) -> int:
     source = read_source(args.file)
-    pipeline = selected_pipeline(args)
-    if args.engine not in ("ir", "native") and pipeline:
-        raise CliError("--passes/-O requires the 'ir' or 'native' engine")
+    optimizing = args.passes is not None or args.opt_level is not None or args.schedule
+    if args.engine not in ("ir", "native") and optimizing:
+        raise CliError("--passes/-O/--schedule requires the 'ir' or 'native' engine")
 
     def step() -> int:
+        pipeline = scheduled_pipeline(args, source.text, source.name)
         stats: IRExecutionResult | None = None
         if args.engine == "ast":
             result: ExecutionResult | IRExecutionResult = run_program(

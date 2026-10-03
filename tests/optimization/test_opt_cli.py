@@ -40,3 +40,31 @@ def test_conflicting_options(capsys: pytest.CaptureFixture[str]) -> None:
 def test_unknown_pass(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["opt", "--passes", "magic", str(EXAMPLES / "gcd.mini")]) == EXIT_COMPILE_ERROR
     assert "unknown pass 'magic'" in capsys.readouterr().err
+
+
+def test_run_with_oracle_schedule(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["run", "--schedule", "oracle", str(EXAMPLES / "primes.mini")]) == EXIT_OK
+    captured = capsys.readouterr()
+    assert captured.out == "25\n53\n" and "schedule (oracle):" in captured.err
+
+
+def test_opt_with_dqn_checkpoint(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    import numpy as np
+
+    from forgecompile.ml.features import FEATURE_NAMES
+    from forgecompile.rl.dqn import DQNAgent, DQNConfig, Normalizer
+    from forgecompile.rl.env import ENV_ACTIONS
+
+    n = len(ENV_ACTIONS)
+    agent = DQNAgent(len(FEATURE_NAMES) + 1 + n, n, DQNConfig())
+    agent.normalizer = Normalizer(np.zeros(agent.online.params["W1"].shape[0]), np.ones(1))
+    agent.save(tmp_path / "agent.npz")
+    args = ["opt", "--schedule", "dqn", "--checkpoint", str(tmp_path / "agent.npz")]
+    assert main([*args, "--max-passes", "3", str(EXAMPLES / "gcd.mini")]) == EXIT_OK
+    assert "schedule (dqn):" in capsys.readouterr().err
+
+
+def test_schedule_conflicts_with_passes(capsys: pytest.CaptureFixture[str]) -> None:
+    code = main(["opt", "--schedule", "oracle", "-O", "2", str(EXAMPLES / "gcd.mini")])
+    assert code != EXIT_OK
+    assert "either --schedule or --passes/-O" in capsys.readouterr().err

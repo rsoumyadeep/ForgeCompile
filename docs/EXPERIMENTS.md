@@ -222,6 +222,26 @@ Rules:
   OOD split is genuinely out of distribution. That is its purpose, and it predicts that
   learned policies will transfer imperfectly.
 
+### Pipeline sanity check (2026-10-03, laptop, commit `52a6abb`)
+
+`uv run python scripts/e2e_sanity.py` runs every stage once on 10 generated programs (seed 0),
+each with an assertion. All 8 stages passed in 31 s:
+
+1. compile `gen100008` (2 functions, cost 6,761);
+2. extract its 61 features;
+3. build 24 train / 6 test oracle-labelled records;
+4. fit a random forest (test regret 0.0048, accuracy 0.67);
+5. let the model schedule 12 passes (cost 6,761 → 4,749);
+6. compile natively, with output identical to the unoptimized interpreter run;
+7. take one environment step (observation of size 74, reward +0.41 for `sccp`);
+8. train DQN for 10 episodes (79 steps, 0 invalid transformations).
+
+Two behaviours to watch in the full runs:
+- the model policy cycles `simplifycfg/copyprop/simplify`;
+- the barely-trained DQN repeats no-op passes until the horizon instead of choosing `stop`.
+
+These are tiny-data results and are **not evidence** for any hypothesis.
+
 ## EXP-004 — Can a model predict the best next pass from static IR features?
 
 - **Date:** 2026-10-03 (pre-registered before the full run; sanity runs only before this)
