@@ -131,6 +131,9 @@ def collect_environment(repo_dir: Path | None = None) -> dict[str, object]:
             "processor": platform.processor(),
         },
         "cpu_count": os.cpu_count(),
+        # 1/5/15-minute load averages at the start of a run: on a shared machine they are
+        # the first thing to check when timings look noisy (None where unsupported).
+        "load_average": list(os.getloadavg()) if hasattr(os, "getloadavg") else None,
         "git": git_revision(repo_dir),
         "tools": [asdict(tool) for tool in detect_tools()],
     }
