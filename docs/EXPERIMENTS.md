@@ -199,7 +199,28 @@ Rules:
   determinism across worker counts, name and source disjointness of splits, program validity,
   record invariants, from-scratch replay of features and outcome tables, and output
   preservation of every replayed state and one-step outcome.
-- **Results:** below, after the run.
+- **First attempt (local smoke run):** the validator stopped at once. Generated program
+  `gen100002` traps, and about 10% of the training workload trapped (30/300 seeds). This led
+  to D-036 (trap-free training profile). Datasets from before D-036 exist only as sanity runs.
+- **Configuration (server, commit `46a5643`):** `--n-train 80 --n-val 20 --n-test 20
+  --workers 8 --replay 24` (137 programs, 8 steps, ε = 0.3, seed 0). This is a medium-sized
+  dataset. The full one (600 programs) is built by EXP-004 with the same code.
+- **Results** (curated: `experiments/EXP-007-dataset-validation/`): all checks passed.
+  - The 1-worker and 8-worker builds are byte-identical (same SHA-256). The parallel build was
+    only 2.2× faster (379 s → 176 s): a few long OOD programs dominate the critical path.
+  - Splits are disjoint by name and by source text. There are 0 trapping programs and 0
+    programs without output.
+  - The replay recomputed 179 states and 1,969 one-step outcomes from scratch. Features, costs
+    and the complete outcome tables matched exactly, and every outcome preserved the program's
+    output.
+  - 1,021 records; mean trajectory length 7.45 of 8; 43/137 trajectories end in STOP.
+  - **Distribution difference:** OOD programs are about 50× more expensive (median initial
+    cost 307k vs 6.4k for train), and their labels differ. STOP is 21% of OOD labels vs 6% of
+    train labels, and `bce`/`strength` appear mostly on OOD. Generated programs are dominated by
+    `simplifycfg`, `dce`, `copyprop` and `sccp`.
+- **Interpretation:** the labels are reproducible measurements and the splits are clean. The
+  OOD split is genuinely out of distribution. That is its purpose, and it predicts that
+  learned policies will transfer imperfectly.
 
 ## EXP-004 — Can a model predict the best next pass from static IR features?
 

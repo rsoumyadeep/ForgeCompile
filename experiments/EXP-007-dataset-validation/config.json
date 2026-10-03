@@ -1,0 +1,14 @@
+{
+  "dataset": {
+    "epsilon": 0.3,
+    "first_seed": 100000,
+    "metric": "cost",
+    "n_test": 20,
+    "n_train": 80,
+    "n_val": 20,
+    "seed": 0,
+    "steps": 8
+  },
+  "replay": 24,
+  "workers": 8
+}

@@ -1,0 +1,89 @@
+{
+  "determinism": {
+    "build_seconds": {
+      "1": 378.6017255260376,
+      "8": 175.7221023570164
+    },
+    "sha256": "016551c9336627831c04d492b07d4b9343f2b6e195d906f9a216d05c867fc85a"
+  },
+  "label_counts": {
+    "ood": {
+      "bce": 10,
+      "constfold": 5,
+      "copyprop": 21,
+      "cse": 5,
+      "inline": 10,
+      "licm": 4,
+      "simplifycfg": 28,
+      "stop": 24,
+      "strength": 6
+    },
+    "test": {
+      "constfold": 6,
+      "copyprop": 22,
+      "cse": 6,
+      "dce": 25,
+      "inline": 5,
+      "licm": 10,
+      "sccp": 28,
+      "simplify": 14,
+      "simplifycfg": 37,
+      "stop": 3
+    },
+    "train": {
+      "constfold": 54,
+      "copyprop": 90,
+      "cse": 19,
+      "dce": 94,
+      "inline": 19,
+      "licm": 48,
+      "sccp": 72,
+      "simplify": 52,
+      "simplifycfg": 110,
+      "stop": 33,
+      "strength": 5
+    },
+    "val": {
+      "constfold": 10,
+      "copyprop": 22,
+      "cse": 8,
+      "dce": 21,
+      "inline": 4,
+      "licm": 21,
+      "sccp": 23,
+      "simplify": 7,
+      "simplifycfg": 29,
+      "stop": 7,
+      "strength": 4
+    }
+  },
+  "median_initial_cost": {
+    "ood": 307235,
+    "test": 16117,
+    "train": 6412,
+    "val": 21422
+  },
+  "programs_per_split": {
+    "ood": 17,
+    "test": 20,
+    "train": 80,
+    "val": 20
+  },
+  "programs_without_output": 0,
+  "records": {
+    "ood": 113,
+    "test": 156,
+    "train": 596,
+    "val": 156
+  },
+  "replay": {
+    "outcomes": 1969,
+    "programs": 24,
+    "states": 179
+  },
+  "trajectories": {
+    "mean_trajectory_length": 7.452554744525547,
+    "programs": 137,
+    "trajectories_ending_in_stop": 43
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "environment": {
+    "cpu_count": 64,
+    "forgecompile_version": "0.0.1",
+    "git": {
+      "commit": "46a5643593b3438591816bc5aef9df82e08daa6d",
+      "dirty": false
+    },
+    "platform": {
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "release": "6.2.0-39-generic",
+      "system": "Linux",
+      "version": "#40~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Thu Nov 16 10:53:04 UTC 2"
+    },
+    "python": {
+      "executable": "/data/home/rsoumyadeep/ForgeCompile/.venv/bin/python3",
+      "implementation": "CPython",
+      "version": "3.11.16"
+    },
+    "tools": [
+      {
+        "available": true,
+        "detail": "LLVM 22.1.0",
+        "name": "llvmlite",
+        "version": "0.50.0"
+      },
+      {
+        "available": true,
+        "detail": "python -m ziglang",
+        "name": "zig",
+        "version": "0.16.0"
+      },
+      {
+        "available": true,
+        "detail": "/usr/bin/clang",
+        "name": "clang",
+        "version": "Ubuntu clang version 14.0.0-1ubuntu1.1"
+      }
+    ]
+  },
+  "experiment_id": "EXP-007-dataset-validation",
+  "finished_utc": "2026-10-03T10:12:10.760513+00:00",
+  "seed": 0,
+  "started_utc": "2026-10-03T09:57:07.267260+00:00",
+  "status": "completed",
+  "summary": {
+    "replay": {
+      "outcomes": 1969,
+      "programs": 24,
+      "states": 179
+    },
+    "sha256": "016551c9336627831c04d492b07d4b9343f2b6e195d906f9a216d05c867fc85a"
+  }
+}

@@ -38,3 +38,19 @@ Geometric-mean ratio, optimized / unoptimized (lower is better):
    generated programs, while copy propagation and loop passes matter on hand-written code.
 6. The experiment itself found a missed-optimization bug in SCCP (F-010). The run-1 data
    showing it is kept.
+
+## EXP-007 — The ML/RL training data are deterministic, leak-free and reproducible (Phase 7)
+
+**Setup:** 137 programs (80/20/20 generated + 17 hand-written OOD), commit `46a5643`, server.
+Data: `experiments/EXP-007-dataset-validation/report.json`.
+
+| check | result |
+|---|---|
+| 1-worker vs 8-worker build | identical (SHA-256 `016551c9…`) |
+| split disjointness (names and source text) | disjoint |
+| trapping programs / programs without output | 0 / 0 |
+| from-scratch replay: states, one-step outcomes | 179 states, 1,969 outcomes: all features, costs and outcomes identical; output preserved in every case |
+| median initial cost, train vs OOD | 6.4k vs 307k |
+| STOP share of labels, train vs OOD | 6% vs 21% |
+
+The first (local) validation attempt found that 10% of training programs trapped; fixed by D-036.
