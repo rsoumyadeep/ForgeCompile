@@ -30,6 +30,11 @@ if TYPE_CHECKING:
 
 
 class Opcode(Enum):
+    # Identity hash (C-level) instead of Enum's Python-level hash(name): enum equality is
+    # identity, so this is equivalent, and opcode-keyed dicts/sets are on the interpreter's
+    # hot path (profiling: Enum.__hash__ was 11% of dataset-generation time).
+    __hash__ = object.__hash__
+
     # integer arithmetic (wrap-around)
     ADD = "add"
     SUB = "sub"
@@ -133,6 +138,11 @@ class CmpPred(Enum):
     except ``ne``, which is *unordered* (true for NaN). This matches IEEE-754,
     Python, and LLVM's ``oeq/olt/.../une``.
     """
+
+    # Identity hash (C-level) instead of Enum's Python-level hash(name): enum equality is
+    # identity, so this is equivalent, and opcode-keyed dicts/sets are on the interpreter's
+    # hot path (profiling: Enum.__hash__ was 11% of dataset-generation time).
+    __hash__ = object.__hash__
 
     EQ = "eq"
     NE = "ne"

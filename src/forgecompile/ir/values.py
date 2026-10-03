@@ -22,6 +22,11 @@ from enum import Enum
 
 
 class IRType(Enum):
+    # Identity hash (C-level) instead of Enum's Python-level hash(name): enum equality is
+    # identity, so this is equivalent, and opcode-keyed dicts/sets are on the interpreter's
+    # hot path (profiling: Enum.__hash__ was 11% of dataset-generation time).
+    __hash__ = object.__hash__
+
     I64 = "i64"
     F64 = "f64"
     I1 = "i1"
