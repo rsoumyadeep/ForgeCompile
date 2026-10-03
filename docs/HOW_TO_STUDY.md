@@ -25,7 +25,7 @@ misconceptions.
 | 15 | RL implementation | 9 | ✅ below |
 | 16 | Experimental methodology | 10 | ✅ below |
 | 17 | Failure analysis | all | ✅ below + [FAILURES.md](FAILURES.md) |
-| 18 | Interview questions | 11 | ⏳ |
+| 18 | Interview questions | 11 | ✅ see [INTERVIEW_QUESTIONS.md](INTERVIEW_QUESTIONS.md) |
 
 Suggested order: read [ARCHITECTURE.md](ARCHITECTURE.md), then this guide topic by topic, with
 the code open alongside. After each topic, run its tests and change something on purpose to
@@ -591,3 +591,10 @@ was noticed, the root cause, the fix, and the lesson. Three that come up often i
   first-run cost of a fresh executable. Always ask "compared with what?".
 - **F-015** (laptop run killed under memory pressure): it produced the resource policy
   (D-034) and failed/aborted run markers (D-035).
+
+## 18. Interview questions
+
+See [INTERVIEW_QUESTIONS.md](INTERVIEW_QUESTIONS.md): 62 questions from beginner to
+advanced, plus repository-specific deep dives, each answered with pointers to code and
+measured results. A good way to use it: answer each question aloud *before* reading the
+answer, then open the referenced file and check the details.
