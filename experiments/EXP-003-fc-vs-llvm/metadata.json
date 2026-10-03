@@ -1,0 +1,62 @@
+{
+  "environment": {
+    "cpu_count": 64,
+    "forgecompile_version": "0.0.1",
+    "git": {
+      "commit": "7ff2e0733e4f4d75f566993dd2b23a8079aa837e",
+      "dirty": false
+    },
+    "load_average": [
+      20.92822265625,
+      21.74658203125,
+      24.4736328125
+    ],
+    "platform": {
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "release": "6.2.0-39-generic",
+      "system": "Linux",
+      "version": "#40~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Thu Nov 16 10:53:04 UTC 2"
+    },
+    "python": {
+      "executable": "/data/home/rsoumyadeep/ForgeCompile/.venv/bin/python3",
+      "implementation": "CPython",
+      "version": "3.11.16"
+    },
+    "tools": [
+      {
+        "available": true,
+        "detail": "LLVM 22.1.0",
+        "name": "llvmlite",
+        "version": "0.50.0"
+      },
+      {
+        "available": true,
+        "detail": "python -m ziglang",
+        "name": "zig",
+        "version": "0.16.0"
+      },
+      {
+        "available": true,
+        "detail": "/usr/bin/clang",
+        "name": "clang",
+        "version": "Ubuntu clang version 14.0.0-1ubuntu1.1"
+      }
+    ]
+  },
+  "experiment_id": "EXP-003-fc-vs-llvm",
+  "finished_utc": "2026-10-03T14:13:56.959201+00:00",
+  "seed": 0,
+  "started_utc": "2026-10-03T14:04:20.465178+00:00",
+  "status": "completed",
+  "summary": {
+    "geomean_run1": {
+      "fc-O0.llvm-O0": 1.0,
+      "fc-O0.llvm-O2": 7.361717379347316,
+      "fc-O1.llvm-O0": 1.1350768209308504,
+      "fc-O2.llvm-O0": 1.1782310851895201,
+      "fc-O2.llvm-O2": 7.47629952298996
+    },
+    "reproducibility_median": 0.005321673270911512
+  }
+}

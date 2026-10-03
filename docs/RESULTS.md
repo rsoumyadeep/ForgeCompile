@@ -191,7 +191,7 @@ gate; server; commit `7ff2e07`. A new run replaces the aborted laptop attempt (F
 
 | pipeline | predicted ratio (geomean) | measured native ratio (geomean) |
 |---|---:|---:|
-| O2 | 0.741 | **0.849** (7/10 kernels faster, call_fib unchanged; matmul 0.668; arith_hash 1.088, loop_nest 1.029 slower) |
+| O2 | 0.741 | **0.849** (faster beyond noise on 6–7 kernels, e.g. matmul 0.668; call_fib and loop_nest within noise; arith_hash reproducibly 1.088) |
 | licm | 0.871 | 1.004 |
 | strength | 0.942 | 1.008 (worst 1.190) |
 | simplifycfg | 0.985 | 0.913 |
@@ -202,3 +202,23 @@ gate; server; commit `7ff2e07`. A new run replaces the aborted laptop attempt (F
 - The latency weights add nothing over plain instruction counts.
 - Every learned-scheduler result measured with this proxy (EXP-004–012) must be read as a
   statement about the proxy. EXP-008 re-measures the schedules natively.
+
+## EXP-003 — ForgeCompile vs LLVM's optimizer, and reproducibility (Phase 6)
+
+**Setup:** 5 configurations × 10 kernels × 7 repeats, run twice back to back; server; commit
+`7ff2e07`. **Speedups** vs fc-O0 + LLVM -O0 (higher is better). Data:
+`experiments/EXP-003-fc-vs-llvm/`.
+
+| configuration | geomean speedup (run 1 / run 2) | `.text` size vs fc-O0 |
+|---|---:|---:|
+| fc-O1 + LLVM -O0 | 1.135 / 1.128 | — |
+| **fc-O2 + LLVM -O0** | **1.178 / 1.170** | **0.870** |
+| fc-O0 + LLVM -O2 | 7.36 / 7.32 (4.67 without the closed-form loop_nest) | — |
+| fc-O2 + LLVM -O2 | 7.48 / 7.36 | **0.911** (vs fc-O0 + LLVM -O2) |
+
+- **Reproducibility:** the median run-to-run difference of the medians is 0.53% (p90 2.7%), so
+  the noise band for claims is about 3%. Phase 6 acceptance is met.
+- ForgeCompile O2 is a real native win at LLVM -O0: +18% geomean, up to 1.50× on matmul,
+  reproducibly −8% on the latency-bound arith_hash.
+- LLVM -O2 subsumes it for run time (ratio 1.016, within noise). ForgeCompile O2 still makes
+  the final code **8.9% smaller** after LLVM -O2.

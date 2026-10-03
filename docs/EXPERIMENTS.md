@@ -230,8 +230,11 @@ Where each question is answered:
     - `cse` is also badly mispredicted. `inline` is only moderately off.
     - The cost model *underestimates* `simplifycfg` (predicted −1.5%, measured −8.7%).
 - **Interpretation:**
-  1. **ForgeCompile O2 makes native code about 15% faster at LLVM -O0** (geomean, 7 of 10
-     kernels faster, up to 1.5× on matmul), but less than the interpreter predicts (26%).
+  1. **ForgeCompile O2 makes native code about 15% faster at LLVM -O0** (geomean, up to 1.5×
+     on matmul), but less than the interpreter predicts (26%).
+     - Against EXP-003's ~3% noise band: faster on 6–7 kernels, unchanged on call_fib and
+       loop_nest (1.029 here, 0.98–1.00 in EXP-003, i.e. within noise).
+     - Reproducibly slower on arith_hash (+8.8% here, +8.8% in both EXP-003 runs).
   2. The model fails where the cost of an IR instruction depends on code generation. At LLVM
      -O0 every value lives in a stack slot, so removing or hoisting cheap register arithmetic
      saves little, and LICM and strength reduction add loop-carried values (extra stack
@@ -265,7 +268,52 @@ Where each question is answered:
   - H4: Two runs agree within about 5% median relative difference.
 - **Configuration:** `experiments/EXP-003-fc-vs-llvm/run.py --repeats 7 --seeds 0 1`
   (5 configurations, 10 benchmarks, 2 full runs).
-- **Results / interpretation:** below, after the run.
+- **Run:** commit `7ff2e07`, server (shared, load average about 20), 10 min. The two runs were
+  back to back in one session, so the noise band is *within-session* reproducibility, not
+  day-to-day variation. Curated results are in `experiments/EXP-003-fc-vs-llvm/`. Numbers are
+  **speedups** vs fc-O0 + LLVM -O0 (higher is better), unlike EXP-002's time ratios.
+- **Results** (geomean speedup, run 1 / run 2):
+
+  | configuration | all 10 | without loop_nest |
+  |---|---:|---:|
+  | fc-O1 + LLVM -O0 | 1.135 / 1.128 | 1.125 / 1.122 |
+  | **fc-O2 + LLVM -O0** | **1.178 / 1.170** | 1.199 / 1.192 |
+  | fc-O0 + LLVM -O2 | 7.36 / 7.32 | 4.67 / 4.64 |
+  | fc-O2 + LLVM -O2 | 7.48 / 7.36 | 4.71 / 4.63 |
+
+  Per benchmark, fc-O2 at LLVM -O0:
+  - matmul 1.50, sieve 1.37, saxpy 1.43, stencil 1.33, branch_classify 1.19,
+    call_helpers 1.18;
+  - memory_sort 1.02, call_fib 1.00, loop_nest 1.00 / 0.98;
+  - **arith_hash 0.919 in both runs**.
+
+  LLVM -O2 alone computes `loop_nest` in closed form (439×).
+
+  Code size (`.text` bytes, fc-O2 / fc-O0, run 1): geomean **0.870 at LLVM -O0** and **0.911
+  at LLVM -O2** (range 0.705–1.048).
+- **Reproducibility (Phase 6 acceptance):** relative difference of the medians between the two
+  runs, over 50 (benchmark, configuration) pairs:
+  - median **0.53%**, 90th percentile **2.7%**;
+  - maximum 19.7%, on `matrix_stencil` at fc-O2 + LLVM -O2, a 0.1 s run with a 10% CV.
+
+  **Noise band used for claims: about 3%.** Short LLVM -O2 runs (≤ 0.1 s) are noisier.
+- **Hypotheses.**
+  - **H1 supported:** LLVM -O2 alone is 7.4× faster (4.7× without the closed-form
+    `loop_nest`), against 1.18× for ForgeCompile's best pipeline at LLVM -O0. Register
+    allocation, instruction selection and LLVM's own optimizations dominate.
+  - **H2 supported:** fc-O2 is faster than fc-O0 by more than the noise band on 6 kernels and
+    within noise on 3 (memory_sort, call_fib, loop_nest). It is reproducibly 8% *slower* on
+    arith_hash: the latency-bound division chain, the same effect as in EXP-002.
+  - **H3 supported:** fc-O2 + LLVM -O2 ≈ fc-O0 + LLVM -O2 (geomean ratio 1.016, within noise).
+    The +11% on matrix_stencil is inside that pair's 20% run-to-run noise and is not claimed.
+    ForgeCompile still reduces **code size** after LLVM -O2 (−8.9%), but not run time.
+  - **H4 supported:** median run-to-run difference 0.53%, far inside 5%.
+- **Interpretation:**
+  - ForgeCompile's classical pipeline delivers real native wins on its own (+18% geomean,
+    up to 1.5×). LLVM's backend and optimizer are an order of magnitude more powerful, and they
+    subsume ForgeCompile's run-time effect.
+  - This is exactly what D-028 anticipated, and it is why ForgeCompile's decisions are
+    measured at LLVM -O0.
 
 ## EXP-007 — Validation of the training-data generator (run before any model is trained)
 
