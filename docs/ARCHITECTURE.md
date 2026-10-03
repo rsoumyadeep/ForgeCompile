@@ -167,4 +167,4 @@ Every experiment is one script, `experiments/EXP-NNN-*/run.py`. It creates an `E
 
 See [DECISIONS.md](DECISIONS.md). In short: Python (D-001), LLVM via llvmlite + zig cc
 (D-002), interpreter-based deterministic cost metric (D-006, tested by EXP-002), NumPy-only
-ML/RL (D-007), server-first execution with GitHub as the source of truth (D-034).
+ML/RL (D-039), server-first execution with GitHub as the source of truth (D-034).

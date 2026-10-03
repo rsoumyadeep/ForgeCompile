@@ -545,7 +545,7 @@ See [THEORY §16](THEORY.md#16-from-q-learning-to-double-dqn).
 - *Why a target network?* It gives a stable regression target.
 - *Why Double DQN?* The max operator overestimates under noise.
 - *Why NumPy and no PyTorch?* The network is tiny (74 → 128 → 128 → 12), the backward pass is
-  checked against numerical gradients, and it removes a heavy dependency (D-007). GPUs would
+  checked against numerical gradients, and it removes a heavy dependency (D-039). GPUs would
   not help: the bottleneck is the environment (compiling and interpreting), not the network.
 - *How did you pick the checkpoint?* Best validation geomean. Test programs are never used.
 

@@ -505,7 +505,7 @@ one and links back to it.
     project.
   - **Access:** a dedicated key (`forgecompile-laptop-key`), installed once using the
     provided password. The password is never stored in the repository or printed.
-  - **GPUs are not used.** The models (scikit-learn, NumPy DQN) are CPU-only by design (D-007).
+  - **GPUs are not used.** The models (scikit-learn, NumPy DQN) are CPU-only by design (D-039).
 - **Resource policy, enforced in code:**
   - `scripts/resources.py` checks free RAM, load, GPUs and busy processes, and recommends at
     most half the idle CPUs and 25% of free RAM.
@@ -575,3 +575,25 @@ one and links back to it.
   to 16 parallel processes, after the sanity runs and the resource check.
 - **Constraint:** Native **timing** experiments (EXP-002/003/008) still run alone, with no
   other heavy job of ours running, because parallel load would add timing noise.
+
+## D-039 — The DQN is implemented in NumPy; no deep-learning framework
+
+- **Date:** decided when Phase 9 was drafted (2026-10-02). Recorded 2026-10-03, during the
+  documentation audit, because no entry existed.
+- **Context:** D-007 allowed PyTorch in Phase 9 "if used at all". The agent needs a small MLP,
+  Adam, a replay buffer and a target network.
+- **Alternatives:**
+  - PyTorch, which brings autograd and GPU support.
+  - Stable-Baselines3, which brings a ready-made DQN.
+  - NumPy by hand.
+- **Chosen:** NumPy by hand (`rl/dqn.py`). The 74 → 128 → 128 → 12 MLP has a hand-written
+  backward pass that a test checks against numerical gradients.
+- **Why:**
+  1. The network is tiny. The training bottleneck is the environment (compiling, then
+     interpreting the program), so a GPU would be idle.
+  2. It saves a dependency of about 2 GB.
+  3. Every line can be explained in an interview, with no framework magic.
+  4. Stable-Baselines3 would hide exactly the parts worth understanding.
+- **Trade-offs:**
+  - Larger architectures (e.g. GNNs over the IR) would need a framework.
+  - Hand-written gradients need tests: `test_mlp_backward_matches_numerical_gradient`.

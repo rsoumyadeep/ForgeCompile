@@ -6,7 +6,7 @@ Off-policy value learning with a replay buffer reuses every expensive
 transition many times. A policy-gradient method would discard its experience
 after each update. No deep-learning framework is used: the network is a 2-layer
 MLP whose backward pass fits in a screen, which keeps the dependency footprint
-small (D-007) and every line explainable.
+small (D-007, D-039) and every line explainable.
 
 **Algorithm** (Mnih et al. 2015; van Hasselt et al. 2016, Double DQN)::
 

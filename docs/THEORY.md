@@ -669,7 +669,7 @@ samples. On-policy methods (REINFORCE, PPO) discard their experience after each 
 **Implemented from scratch** in NumPy (`rl/dqn.py`), with no deep-learning framework. The MLP's
 backward pass is about 20 lines and is checked against numerical gradients
 (`test_mlp_backward_matches_numerical_gradient`). This keeps every line defensible in an
-interview and keeps dependencies small (D-007).
+interview and keeps dependencies small (D-039).
 
 **In the code:** `rl/dqn.py` (`MLP`, `Adam`, `DQNAgent.learn`, `train`), `rl/training.py`;
 experiment EXP-006, ablations EXP-010.
