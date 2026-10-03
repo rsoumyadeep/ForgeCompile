@@ -201,3 +201,24 @@ def test_dqn_policy_and_oracle_respect_the_action_space() -> None:
     assert set(schedule(policy, build_ir(LOOPY), max_steps=6).actions) <= set(actions)
     oracle = OraclePolicy(CostEvaluator(), actions=actions)
     assert set(schedule(oracle, build_ir(LOOPY), max_steps=6).actions) <= set(actions)
+
+
+def test_training_job_trains_validates_and_checkpoints(tmp_path: Path) -> None:
+    from forgecompile.rl.training import TrainingJob, run_training_job
+
+    program = ProgramSpec("loopy", LOOPY, "generated")
+    job = TrainingJob(
+        name="t",
+        train_programs=[program],
+        val_programs=[program],
+        checkpoint=tmp_path / "agent.npz",
+        episodes=8,
+        dqn=DQNConfig(warmup_steps=1, batch_size=4, epsilon_decay_steps=20),  # validate early
+        horizon=4,
+        validate_every=4,
+        actions=("copyprop", "dce", "constfold"),
+    )
+    log = run_training_job(job)
+    assert job.checkpoint.exists() and log["invalid_transformations"] == 0
+    assert isinstance(log["validation"], list) and len(log["validation"]) == 2
+    assert isinstance(log["best_validation"], float) and 0 < log["best_validation"] <= 1.0

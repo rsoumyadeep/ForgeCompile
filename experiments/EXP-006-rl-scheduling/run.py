@@ -22,29 +22,27 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import shutil
-import time
 from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from pathlib import Path
 
-from forgecompile.driver import build_ir
 from forgecompile.ml.data_pipeline import DatasetConfig, build_dataset, program_splits
-from forgecompile.ml.dataset import CostEvaluator, ProgramSpec
+from forgecompile.ml.dataset import CostEvaluator
 from forgecompile.ml.evaluate import evaluate_policies, markdown_summary, summarize
+from forgecompile.ml.features import FEATURE_NAMES
 from forgecompile.ml.models import select_model
 from forgecompile.ml.policies import (
     FixedPipelinePolicy,
     ModelPolicy,
     OraclePolicy,
     Policy,
-    schedule,
 )
 from forgecompile.optimization.pass_manager import PRESETS
-from forgecompile.rl.dqn import DQNAgent, DQNConfig, DQNPolicy, train
-from forgecompile.rl.env import PassSchedulingEnv, RewardConfig
+from forgecompile.rl.dqn import DQNAgent, DQNConfig, DQNPolicy
+from forgecompile.rl.env import ENV_ACTIONS, RewardConfig
+from forgecompile.rl.training import TrainingJob, run_training_job
 from forgecompile.utils.experiment import ExperimentRun
 
 HERE = Path(__file__).resolve().parent
@@ -54,55 +52,6 @@ HORIZON = 12
 
 def write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8", newline="\n")
-
-
-def geomean(values: list[float]) -> float:
-    return math.exp(sum(math.log(max(v, 1e-12)) for v in values) / len(values))
-
-
-@dataclass(frozen=True)
-class SeedJob:
-    seed: int
-    train_programs: list[ProgramSpec]
-    val_programs: list[ProgramSpec]
-    reward: RewardConfig
-    args: argparse.Namespace
-    run_dir: Path
-
-
-def train_seed(job: SeedJob) -> tuple[int, dict[str, object]]:
-    """Train one seed in its own process (own cost cache); keep the best validation checkpoint."""
-    args = job.args
-    evaluator = CostEvaluator("cost")
-    env = PassSchedulingEnv(job.train_programs, HORIZON, job.reward, evaluator, seed=job.seed)
-    config = DQNConfig(gamma=args.gamma, warmup_steps=args.warmup, seed=job.seed)
-    agent = DQNAgent(env.obs_size, env.n_actions, config)
-    checkpoint = job.run_dir / f"dqn_seed{job.seed}.npz"
-
-    def validate(candidate: DQNAgent) -> float:
-        ratios = []
-        for program in job.val_programs:
-            module = build_ir(program.source, program.name)
-            result = schedule(DQNPolicy(candidate, HORIZON), module, HORIZON)
-            ratios.append(evaluator(result.module) / evaluator(module))
-        return geomean(ratios)
-
-    start = time.perf_counter()
-    log = train(env, agent, args.episodes, validate, args.validate_every, checkpoint)
-    seconds = time.perf_counter() - start
-    if not checkpoint.exists():  # too few episodes to validate even once
-        agent.save(checkpoint)
-    return job.seed, {
-        "train_seconds": seconds,
-        "env_steps": agent.steps,
-        "episode_returns": log.episode_returns,
-        "episode_ratios": log.episode_ratios,
-        "epsilons": log.epsilons,
-        "loss_every_100": log.losses[::100],
-        "validation": log.validation,
-        "invalid_transformations": log.invalid_transformations,
-        "cache_size": len(evaluator.cache),
-    }
 
 
 def main() -> None:
@@ -153,21 +102,32 @@ def main() -> None:
         training: dict[str, dict[str, object]] = {}
         # Seeds are independent: train them in parallel processes (bounded by --seed-workers).
         jobs = [
-            SeedJob(seed, splits["train"], splits["val"][: args.max_val], reward, args, run.run_dir)
+            TrainingJob(
+                name=f"seed{seed}",
+                train_programs=splits["train"],
+                val_programs=splits["val"][: args.max_val],
+                checkpoint=run.run_dir / f"dqn_seed{seed}.npz",
+                episodes=args.episodes,
+                dqn=DQNConfig(gamma=args.gamma, warmup_steps=args.warmup, seed=seed),
+                reward=reward,
+                horizon=HORIZON,
+                validate_every=args.validate_every,
+            )
             for seed in args.seeds
         ]
         with ProcessPoolExecutor(max_workers=min(args.seed_workers, len(jobs))) as pool:
-            futures = [pool.submit(train_seed, job) for job in jobs]
+            futures = {
+                pool.submit(run_training_job, job): seed
+                for job, seed in zip(jobs, args.seeds, strict=True)
+            }
             for future in as_completed(futures):
-                seed, record = future.result()
-                training[str(seed)] = record
+                training[str(futures[future])] = future.result()
                 run.save_json("training.json", training)  # incremental: survives a later crash
         evaluator = CostEvaluator("cost")
-        env_shape = PassSchedulingEnv(splits["train"][:1], HORIZON, reward, evaluator)
+        n_actions = len(ENV_ACTIONS)
+        obs_size = len(FEATURE_NAMES) + 1 + n_actions
         agents = {
-            seed: DQNAgent.load(
-                run.run_dir / f"dqn_seed{seed}.npz", env_shape.obs_size, env_shape.n_actions
-            )
+            seed: DQNAgent.load(run.run_dir / f"dqn_seed{seed}.npz", obs_size, n_actions)
             for seed in args.seeds
         }
 
@@ -182,7 +142,10 @@ def main() -> None:
         ood = splits["ood"] if args.max_ood is None else splits["ood"][: args.max_ood]
         outcomes = evaluate_policies(splits["test"] + ood, policies, evaluator, HORIZON)
         table = summarize(outcomes)
-        run.save_json("outcomes.json", [asdict(o) | {"ratio": o.ratio} for o in outcomes])
+        run.save_json(
+            "outcomes.json",
+            [asdict(o) | {"ratio": o.ratio, "size_ratio": o.size_ratio} for o in outcomes],
+        )
         run.save_json("summary.json", table)
     invalid = {s: training[str(s)]["invalid_transformations"] for s in args.seeds}
     run.finalize("completed", {"invalid_transformations": invalid})

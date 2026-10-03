@@ -19,6 +19,7 @@ from forgecompile.driver import build_ir
 from forgecompile.ir.interpreter import run_module
 from forgecompile.ml.dataset import CostEvaluator, ProgramSpec, clone_module
 from forgecompile.ml.policies import Policy, schedule
+from forgecompile.optimization.utils import module_instruction_count
 
 
 @dataclass
@@ -32,10 +33,16 @@ class PolicyOutcome:
     decision_seconds: float
     schedule_seconds: float
     actions: list[str]
+    initial_size: int = 0  # static IR instruction count (code-size proxy)
+    final_size: int = 0
 
     @property
     def ratio(self) -> float:
         return self.final_cost / self.initial_cost if self.initial_cost else 1.0
+
+    @property
+    def size_ratio(self) -> float:
+        return self.final_size / self.initial_size if self.initial_size else 1.0
 
 
 class WrongCodeError(Exception):
@@ -71,6 +78,8 @@ def evaluate_policies(
                     result.decision_seconds,
                     elapsed,
                     result.actions,
+                    module_instruction_count(base),
+                    module_instruction_count(result.module),
                 )
             )
     return outcomes
@@ -89,6 +98,9 @@ def summarize(outcomes: list[PolicyOutcome]) -> dict[str, dict[str, dict[str, fl
             "geomean_ratio": math.exp(sum(math.log(r) for r in ratios) / len(ratios)),
             "worst_ratio": max(ratios),
             "best_ratio": min(ratios),
+            "geomean_size_ratio": math.exp(
+                sum(math.log(max(o.size_ratio, 1e-12)) for o in items) / len(items)
+            ),
             "mean_passes": sum(o.n_passes for o in items) / len(items),
             "mean_decision_ms": 1000 * sum(o.decision_seconds for o in items) / len(items),
             "mean_schedule_ms": 1000 * sum(o.schedule_seconds for o in items) / len(items),
@@ -98,14 +110,15 @@ def summarize(outcomes: list[PolicyOutcome]) -> dict[str, dict[str, dict[str, fl
 
 
 def markdown_summary(table: dict[str, dict[str, dict[str, float]]]) -> str:
-    header = ["programs", "policy", "geomean cost ratio", "best", "worst"]
+    header = ["programs", "policy", "geomean cost ratio", "best", "worst", "size ratio"]
     header += ["mean passes", "decision ms", "schedule ms"]
-    lines = ["| " + " | ".join(header) + " |", "|---|---|---:|---:|---:|---:|---:|---:|"]
+    lines = ["| " + " | ".join(header) + " |", "|---|---|---:|---:|---:|---:|---:|---:|---:|"]
     for origin in sorted(table):
         for policy, m in sorted(table[origin].items(), key=lambda kv: kv[1]["geomean_ratio"]):
             lines.append(
                 f"| {origin} | {policy} | {m['geomean_ratio']:.3f} | {m['best_ratio']:.3f} | "
-                f"{m['worst_ratio']:.3f} | {m['mean_passes']:.1f} | {m['mean_decision_ms']:.1f} | "
+                f"{m['worst_ratio']:.3f} | {m['geomean_size_ratio']:.3f} | "
+                f"{m['mean_passes']:.1f} | {m['mean_decision_ms']:.1f} | "
                 f"{m['mean_schedule_ms']:.1f} |"
             )
     return "\n".join(lines) + "\n"

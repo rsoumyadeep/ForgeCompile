@@ -235,6 +235,7 @@ def test_evaluate_policies_end_to_end() -> None:
         evaluator,
     )
     assert len(outcomes) == 4 and all(o.ratio <= 1.0 for o in outcomes)
+    assert all(o.initial_size > 0 and o.final_size > 0 for o in outcomes)
     table = summarize(outcomes)
     assert "oracle-greedy" in table["all"]
     assert "| all |" in markdown_summary(table)

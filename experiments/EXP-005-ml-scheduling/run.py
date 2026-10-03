@@ -92,7 +92,10 @@ def main() -> None:
         ood = splits["ood"] if args.max_ood is None else splits["ood"][: args.max_ood]
         outcomes = evaluate_policies(splits["test"] + ood, policies, evaluator, MAX_STEPS)
         table = summarize(outcomes)
-        run.save_json("outcomes.json", [asdict(o) | {"ratio": o.ratio} for o in outcomes])
+        run.save_json(
+            "outcomes.json",
+            [asdict(o) | {"ratio": o.ratio, "size_ratio": o.size_ratio} for o in outcomes],
+        )
         run.save_json("summary.json", table)
     except BaseException as exc:  # preserve the run directory, marked failed, with the cause
         run.finalize("failed", {"error": repr(exc)})
