@@ -1,0 +1,86 @@
+{
+  "experiments/EXP-006-rl-scheduling/checkpoints/dqn_seed0.npz": {
+    "test": {
+      "mean_regret": 0.051414857645009186,
+      "accuracy": 0.10899182561307902,
+      "stop_rate": 0.025885558583106268,
+      "n": 734.0
+    },
+    "ood": {
+      "mean_regret": 0.03717092679570793,
+      "accuracy": 0.05309734513274336,
+      "stop_rate": 0.18584070796460178,
+      "n": 113.0
+    }
+  },
+  "experiments/EXP-006-rl-scheduling/checkpoints/dqn_seed1.npz": {
+    "test": {
+      "mean_regret": 0.06429751749595328,
+      "accuracy": 0.16076294277929154,
+      "stop_rate": 0.0,
+      "n": 734.0
+    },
+    "ood": {
+      "mean_regret": 0.030641145992437953,
+      "accuracy": 0.19469026548672566,
+      "stop_rate": 0.0,
+      "n": 113.0
+    }
+  },
+  "experiments/EXP-006-rl-scheduling/checkpoints/dqn_seed2.npz": {
+    "test": {
+      "mean_regret": 0.06648948484176241,
+      "accuracy": 0.08310626702997276,
+      "stop_rate": 0.0013623978201634877,
+      "n": 734.0
+    },
+    "ood": {
+      "mean_regret": 0.039970463050650565,
+      "accuracy": 0.02654867256637168,
+      "stop_rate": 0.05309734513274336,
+      "n": 113.0
+    }
+  },
+  "experiments/EXP-012-dqn-followup/checkpoints/dqn_scaled_seed0.npz": {
+    "test": {
+      "mean_regret": 0.036529509062242546,
+      "accuracy": 0.16893732970027248,
+      "stop_rate": 0.0,
+      "n": 734.0
+    },
+    "ood": {
+      "mean_regret": 0.033917759632554764,
+      "accuracy": 0.061946902654867256,
+      "stop_rate": 0.0,
+      "n": 113.0
+    }
+  },
+  "experiments/EXP-012-dqn-followup/checkpoints/dqn_scaled_seed1.npz": {
+    "test": {
+      "mean_regret": 0.06332336565274109,
+      "accuracy": 0.04904632152588556,
+      "stop_rate": 0.0,
+      "n": 734.0
+    },
+    "ood": {
+      "mean_regret": 0.038156910285138144,
+      "accuracy": 0.0,
+      "stop_rate": 0.008849557522123894,
+      "n": 113.0
+    }
+  },
+  "experiments/EXP-012-dqn-followup/checkpoints/dqn_scaled_seed2.npz": {
+    "test": {
+      "mean_regret": 0.06577843800651684,
+      "accuracy": 0.08310626702997276,
+      "stop_rate": 0.0,
+      "n": 734.0
+    },
+    "ood": {
+      "mean_regret": 0.03732887912863781,
+      "accuracy": 0.061946902654867256,
+      "stop_rate": 0.0,
+      "n": 113.0
+    }
+  }
+}

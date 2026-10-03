@@ -587,6 +587,17 @@ These are tiny-data results and are **not evidence** for any hypothesis.
   - The DQN itself was checked on a two-step chain MDP that needs bootstrapping
     (`test_dqn_bootstraps_delayed_reward_on_a_chain`), so a TD-update bug is unlikely to be
     the explanation.
+- **Post-hoc diagnostic** (not pre-registered; `scripts/dqn_one_step_regret.py`, src tree
+  identical to `e37527c`; output in
+  `experiments/EXP-012-dqn-followup/one_step_regret_posthoc.json`):
+  - The DQN checkpoints' argmax-Q decisions were scored on exactly the 734 EXP-004 test states,
+    whose complete one-step outcome tables are known.
+  - Mean one-step regret: EXP-006 seeds 0.051 / 0.064 / 0.066; scaled seeds 0.037 / 0.063 /
+    0.066.
+  - For comparison: supervised GBDT **0.0152**, majority class 0.0670.
+  - Most DQN checkpoints rank actions barely better than the majority baseline. The
+    learned Q-function is a poor one-step ranker, which locates the failure in the value
+    estimates rather than in the evaluation wrapper.
 
 ## EXP-009 — Ablations of the supervised scheduler (features, data size, distribution)
 
