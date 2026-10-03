@@ -17,9 +17,12 @@ textbook material without a code link.
 | 9. Data-flow analysis (lattices, fixpoints) | 4 | ✅ |
 | 10. Why each optimization is valid | 4 | ✅ |
 | 11. LLVM IR | 5 | ✅ |
-| 12. Measuring performance | 6 | ⏳ |
-| 13. Why pass ordering is hard (the phase-ordering problem) | 7 | ⏳ |
-| 14. Pass scheduling as an MDP | 8 | ⏳ |
+| 12. Measuring performance | 6 | ✅ |
+| 13. Why pass ordering is hard (the phase-ordering problem) | 7 | ✅ |
+| 14. Pass selection as supervised learning | 7 | ✅ |
+| 15. Pass scheduling as an MDP | 8 | ✅ |
+| 16. From Q-learning to Double DQN | 9 | ✅ |
+| 17. Experimental methodology for learned compiler heuristics | 10 | ✅ |
 
 ---
 
@@ -497,3 +500,215 @@ and the runtime. Executable size would be dominated by the C library.
 **In the code:** `src/forgecompile/benchmarking/` (`suite.py`, `measure.py`, `runner.py`,
 `report.py`, `stats.py`), `benchmarks/`, `experiments/EXP-002-cost-model/`,
 `experiments/EXP-003-fc-vs-llvm/`.
+
+## 13. Why pass ordering is hard (the phase-ordering problem)
+
+**The problem.** An optimizing compiler is a sequence of transformations. Each pass assumes
+something about its input, and each pass changes what the next one sees. The order therefore
+matters, and no single order is best for every program. This is the *phase-ordering problem*,
+studied since the 1970s and still open.
+
+**The four interactions.** Each one is visible in ForgeCompile:
+- **Enabling:** pass A creates opportunities for pass B. `copyprop` turns `%i.4 = copy %t13`
+  chains into direct uses, and only then can `bce` recognize `%i` as an induction variable
+  (EXP-001: `bce` alone does nothing; `copyprop,bce` removes checks).
+- **Disabling:** pass A destroys opportunities for pass B. In other compilers, inlining a call
+  before constant propagation can hide a constant argument behind a parameter phi.
+- **Redundancy:** `constfold` and `sccp` overlap. Running the second after the first usually
+  does nothing, but it still costs compile time.
+- **Harm:** a valid pass can make the program slower. LICM hoisted code out of a loop that
+  never ran (EXP-001, 1.87× worse), and inlining grows code.
+
+**Why not just search?** With |A| = 11 passes and sequences of length T = 12 there are
+11¹² ≈ 3·10¹² candidate schedules per program, and evaluating one means compiling and
+measuring. Exhaustive search is out. Greedy search ("apply whatever helps most right now") is
+myopic: it cannot take a pass with zero immediate gain that enables a large later one.
+`OraclePolicy` (`ml/policies.py`) implements exactly this greedy search, using the real cost
+of every candidate. It is expensive, and it is an upper bound only for *one-step* policies.
+
+**Why learn?** A learned policy replaces the expensive evaluation of every candidate with a
+cheap prediction from program features. An interviewer will ask whether the prediction is good
+enough to matter, and whether its overhead is smaller than its benefit. Phases 7–10 measure
+both instead of assuming them.
+
+**Why not just use O2?** A fixed pipeline is a hand-tuned guess for "typical" code. A
+program-specific schedule can skip useless passes (compile time) and choose orders that suit
+the program (run time). The honest null hypothesis is that O2 is already good enough. Every
+learned policy here is compared against it.
+
+**In the code:** `optimization/pass_manager.py` (`PRESETS`, `optimize`), `ml/policies.py`,
+[ML_GUIDED_OPTIMIZATION.md](ML_GUIDED_OPTIMIZATION.md) §1.
+
+## 14. Pass selection as supervised learning
+
+**Formulation.** The learner sees a state, the current IR summarized by a feature vector
+φ(M) ∈ ℝ⁶¹. It outputs a label y ∈ {11 passes, stop}. This is multi-class classification. The
+classifier is applied greedily: predict, apply, re-extract features, repeat.
+
+**Where labels come from.** At every recorded state, every pass is applied to a copy, the
+result is executed, and the label is the cheapest outcome (or *stop* if nothing improves).
+This is supervised learning from an *oracle*: a teacher that is too expensive to run at
+compile time but affordable offline. The model learns to imitate the one-step oracle (in RL
+language, *imitation learning* of the greedy policy). Its ceiling is the greedy oracle, which
+is exactly the limitation that motivates RL (§15).
+
+**Features.** These are cheap static counts (`ml/features.py`): size, opcode mix, CFG shape,
+loops, memory, calls, and "opportunity detectors" such as the number of copies or of duplicate
+pure expressions. The detectors encode compiler knowledge directly, which raises a legitimate
+question: is the model learning anything beyond them? A feature-group ablation (EXP-009)
+answers it.
+
+**Why regret instead of accuracy.** Several passes often tie: on many states `constfold` and
+`sccp` remove the same instructions. Predicting the "wrong" one of two equally good passes
+costs nothing, yet accuracy counts it as an error. Regret measures what the decision actually
+loses:
+
+    regret(s) = max_a gain(a, s) − gain(â, s) ≥ 0,   gain(stop, s) = 0
+
+Its mean over held-out states is the primary metric.
+
+**Model classes.**
+- **Decision tree:** recursive axis-aligned splits that minimize impurity (Gini). It is
+  interpretable but has high variance.
+- **Random forest:** averages many trees, each trained on a bootstrap sample with random
+  feature subsets. This lowers variance and needs little tuning, which makes it a strong
+  default for heterogeneous count features.
+- **Gradient boosting:** trees are fitted one after another, each to the gradient of the loss
+  with respect to the current ensemble's prediction. It is often the most accurate model on
+  tabular data.
+- **MLP:** a small neural network. It needs scaled inputs (`log1p`, then standardize), because
+  counts span orders of magnitude.
+
+Selection is by **validation** regret. The chosen model is refitted on train + val and scored
+once on test.
+
+**Leakage.** States from the same program are near-duplicates. Splitting by state would put
+almost the same example in train and test and inflate every metric. The split is therefore by
+*program*, with disjoint generator seeds (`ml/data_pipeline.py`), and EXP-007 verifies it.
+
+**In the code:** `ml/dataset.py`, `ml/features.py`, `ml/models.py`, `ml/data_pipeline.py`;
+experiment EXP-004.
+
+## 15. Pass scheduling as an MDP
+
+**Markov decision process.** An MDP is a tuple (S, A, P, R, γ):
+- states S and actions A;
+- a transition distribution P(s′ | s, a);
+- a reward R(s, a, s′);
+- a discount γ ∈ [0, 1].
+
+A policy π(a | s) induces trajectories. Its *return* is G = Σₜ γᵗ rₜ, and the goal is the
+policy with the highest expected return. "Markov" means the next state depends only on the
+current state and action, not on the history.
+
+**ForgeCompile's MDP** (full table in [RL_FORMULATION.md](RL_FORMULATION.md)):
+- the state is (M, t), the IR module and the step;
+- the actions are the 11 passes plus stop;
+- transitions are deterministic (applying a pass is a function);
+- the reward is the relative cost reduction minus a per-pass penalty λ;
+- γ = 1, with a finite horizon T = 12.
+
+**Why rewards telescope.** With rₜ = (C(Mₜ) − C(Mₜ₊₁))/C(M₀) − λ, an episode that applies K
+passes returns (C(M₀) − C(M_K))/C(M₀) − λK, because the intermediate states cancel. This is
+deliberate reward shaping:
+- the objective is "final program quality minus compile cost", so no intermediate step can be
+  exploited;
+- cycling between states earns nothing;
+- normalizing by C(M₀) makes programs of different sizes comparable.
+
+**Why RL rather than the supervised model?** The supervised model imitates the greedy oracle,
+which maximizes the *immediate* gain. RL maximizes the *sum* of gains, so it can in principle
+learn "apply copyprop now (gain ≈ 0) because bce next gains a lot". Whether such delayed
+effects are common enough in this compiler to matter is an empirical question, answered by
+EXP-006.
+
+**Partial observability.** The agent sees φ(M), not M. Two different programs can have the
+same features, so strictly this is a POMDP. The step counter and the previous action are added
+to the observation to recover the information that matters most: the remaining budget, and
+whether the last pass did anything.
+
+**In the code:** `rl/env.py` (the MDP as a Gym-style environment). The telescoping property is
+tested in `tests/rl/test_rl.py::test_rewards_telescope_to_total_improvement`.
+
+## 16. From Q-learning to Double DQN
+
+**Action values.** Q^π(s, a) is the expected return from taking a in s and following π
+afterwards. The optimal Q* satisfies the **Bellman optimality equation**:
+
+    Q*(s, a) = E[ r + γ · max_a′ Q*(s′, a′) ]
+
+Once Q* is known, acting greedily (argmax_a Q*(s, a)) is optimal.
+
+**Q-learning** learns Q* from experience with temporal-difference (TD) updates: Q(s, a) moves
+toward the *TD target* y = r + γ max_a′ Q(s′, a′). It is *off-policy*: it learns about the
+greedy policy while behaving ε-greedily (a random action with probability ε), which is how it
+explores.
+
+**DQN** (Mnih et al., 2015) replaces the table with a neural network Q(s, a; θ) and adds two
+stabilizers:
+1. **Experience replay.** Transitions are stored in a buffer and minibatches are sampled
+   uniformly. This breaks the correlation between consecutive samples and reuses each
+   transition many times. That matters here, because an environment step is a compile plus an
+   interpreter run.
+2. **Target network.** The TD target uses a frozen copy θ⁻, refreshed every N steps. Without
+   it the target moves with every update and training can diverge.
+
+**Double DQN** (van Hasselt et al., 2016). The max in the target overestimates, because the
+maximum of noisy estimates is biased upward. Double DQN selects the next action with the
+online network and evaluates it with the target network:
+
+    y = r + γ · Q(s′, argmax_a′ Q(s′, a′; θ); θ⁻)
+
+**Huber loss** is quadratic for small TD errors and linear for large ones, so rare large errors
+do not produce huge gradients.
+
+**Why DQN here and not policy gradients?** The action space is small and discrete (12).
+Observations are fixed-length vectors. Environment steps are expensive, which favours reusing
+samples. On-policy methods (REINFORCE, PPO) discard their experience after each update.
+
+**Implemented from scratch** in NumPy (`rl/dqn.py`), with no deep-learning framework. The MLP's
+backward pass is about 20 lines and is checked against numerical gradients
+(`test_mlp_backward_matches_numerical_gradient`). This keeps every line defensible in an
+interview and keeps dependencies small (D-007).
+
+**In the code:** `rl/dqn.py` (`MLP`, `Adam`, `DQNAgent.learn`, `train`), `rl/training.py`;
+experiment EXP-006, ablations EXP-010.
+
+## 17. Experimental methodology for learned compiler heuristics
+
+**Baselines decide whether a result means anything.** Each one answers a different "is it
+just…?" question:
+- a random schedule: is any schedule fine?
+- the fixed O2 pipeline: is hand-tuning already enough?
+- a frequency-ordered list: is it just the label prior?
+- the majority class: is it just the most common label?
+- the greedy oracle: how much is left to gain?
+
+**Held-out evaluation, three ways.**
+1. **Validation** programs choose models, checkpoints and hyperparameters.
+2. **Test** programs come from the same generator, are never seen during development, and are
+   scored once.
+3. **OOD** programs are hand-written kernels, from a different distribution.
+
+Tuning on test, even by looking at it and rerunning, is not allowed. The hypotheses for
+EXP-004 onward were written in EXPERIMENTS.md before the full runs.
+
+**Proxy vs target.** Training uses the interpreter cost because it is exact and cheap, but what
+matters is native time. EXP-002 measures how well the two correlate, and EXP-008 re-measures
+the final schedules natively. *Prediction accuracy is not compiler performance*: a classifier
+can be accurate on easy states and wrong on the few that matter. That is why end-to-end
+schedule quality is reported separately from regret.
+
+**Seeds and variance.** RL results vary from seed to seed. Several seeds are trained, and every
+seed's result is reported, not just the best one.
+
+**Overhead.** A learned scheduler costs feature extraction and inference at compile time. It is
+worth it only if (run-time benefit × executions) exceeds (compile-time cost × compilations).
+Decision milliseconds are recorded for every policy.
+
+**Negative results are results.** If O2 matches the learned policy, the honest conclusion is
+that this action space and workload leave little for learning to find, and it is reported that
+way.
+
+**In the code:** `ml/evaluate.py` (end-to-end evaluation with output checks), every
+`experiments/EXP-*/run.py`, [EXPERIMENTS.md](EXPERIMENTS.md).
