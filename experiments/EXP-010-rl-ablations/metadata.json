@@ -1,0 +1,55 @@
+{
+  "environment": {
+    "cpu_count": 64,
+    "forgecompile_version": "0.0.1",
+    "git": {
+      "commit": "e37527ccae58995355073b4b2f2e40e65260a65a",
+      "dirty": false
+    },
+    "load_average": [
+      30.2587890625,
+      22.84375,
+      14.67724609375
+    ],
+    "platform": {
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "release": "6.2.0-39-generic",
+      "system": "Linux",
+      "version": "#40~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Thu Nov 16 10:53:04 UTC 2"
+    },
+    "python": {
+      "executable": "/data/home/rsoumyadeep/ForgeCompile/.venv/bin/python3",
+      "implementation": "CPython",
+      "version": "3.11.16"
+    },
+    "tools": [
+      {
+        "available": true,
+        "detail": "LLVM 22.1.0",
+        "name": "llvmlite",
+        "version": "0.50.0"
+      },
+      {
+        "available": true,
+        "detail": "python -m ziglang",
+        "name": "zig",
+        "version": "0.16.0"
+      },
+      {
+        "available": true,
+        "detail": "/usr/bin/clang",
+        "name": "clang",
+        "version": "Ubuntu clang version 14.0.0-1ubuntu1.1"
+      }
+    ]
+  },
+  "experiment_id": "EXP-010-rl-ablations",
+  "finished_utc": "2026-10-03T13:47:13.634545+00:00",
+  "seed": 0,
+  "started_utc": "2026-10-03T13:28:09.310640+00:00",
+  "status": "completed",
+  "summary": {
+    "tasks": 18
+  }
+}
