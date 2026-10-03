@@ -36,7 +36,8 @@ import numpy as np
 
 from forgecompile.ir.function import Module
 from forgecompile.ml.features import feature_vector
-from forgecompile.rl.env import ENV_ACTIONS, PassSchedulingEnv
+from forgecompile.ml.policies import module_hash
+from forgecompile.rl.env import ENV_ACTIONS, STOP, PassSchedulingEnv
 from forgecompile.utils.logging import get_logger
 
 _log = get_logger("rl")
@@ -292,17 +293,26 @@ def train(
 
 @dataclass
 class DQNPolicy:
-    """Greedy policy from a trained agent, usable with ``ml.policies.schedule``."""
+    """Greedy policy from a trained agent, usable with ``ml.policies.schedule``.
+
+    With ``no_retry`` the policy follows the Q-value ranking but never re-applies a pass
+    in an IR state where it was already tried (states keyed by IR hash): the same rule
+    as the supervised ``ModelPolicy``. It costs nothing at inference time and removes the
+    repeat-a-no-op failure mode found in EXP-006. Without it (the default, and the
+    EXP-006 protocol) the policy is the plain argmax.
+    """
 
     agent: DQNAgent
     horizon: int = 12
     name: str = "dqn"
     actions: list[str] = field(default_factory=lambda: list(ENV_ACTIONS))  # as in the env
+    no_retry: bool = False
     _t: int = 0
     _last: int | None = None
+    _tried: dict[str, set[int]] = field(default_factory=dict)
 
     def reset(self) -> None:
-        self._t, self._last = 0, None
+        self._t, self._last, self._tried = 0, None, {}
 
     def choose(self, module: Module) -> str:
         last = np.zeros(len(self.actions))
@@ -310,7 +320,17 @@ class DQNPolicy:
             last[self._last] = 1.0
         remaining = (self.horizon - self._t) / self.horizon
         obs = np.concatenate([np.array(feature_vector(module)), [remaining], last])
-        action = int(np.argmax(self.agent.q_values(obs)))
+        q = self.agent.q_values(obs)
+        if self.no_retry:
+            tried = self._tried.setdefault(module_hash(module), set())
+            action = len(self.actions) - 1  # STOP if every pass was tried in this state
+            for candidate in np.argsort(-q, kind="stable"):
+                if self.actions[candidate] == STOP or int(candidate) not in tried:
+                    action = int(candidate)
+                    break
+            tried.add(action)
+        else:
+            action = int(np.argmax(q))
         self._t += 1
         self._last = action
         return self.actions[action]

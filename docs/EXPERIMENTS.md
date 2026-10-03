@@ -480,3 +480,29 @@ These are tiny-data results and are **not evidence** for any hypothesis.
     whatever the algorithm.
 - **Configuration:** `experiments/EXP-011-headroom/run.py --widths 1 4 16 --workers 16`, on 100
   test programs and 17 OOD programs.
+
+## EXP-012 — DQN follow-up: equal policy wrappers, then 4× more training
+
+- **Date:** 2026-10-03 (pre-registered after EXP-006's diagnosis, before any EXP-012 number was
+  seen)
+- **Objective:** separate two explanations for EXP-006's poor DQN:
+  - (a) the missing no-retry wrapper, which the supervised policy had;
+  - (b) too little training.
+- **Part A:**
+  - The three EXP-006 checkpoints, with and without the no-retry wrapper, are evaluated on
+    **all 100 validation programs**.
+  - That validation comparison is the decision metric. Test and OOD are evaluated once
+    afterwards.
+- **Part B:**
+  - 3 seeds × 12,000 episodes (4× EXP-006), with ε decaying over 24,000 steps (4×).
+  - Checkpoints are selected on 40 validation programs *with* the no-retry wrapper.
+  - Evaluated on test and OOD with and without the wrapper.
+  - Everything else equals EXP-006.
+- **Hypotheses:**
+  - H1: the no-retry wrapper improves every EXP-006 checkpoint's validation geomean by
+    ≥ 3% relative.
+  - H2: even with the wrapper, no EXP-006 checkpoint beats O2 on test.
+  - H3: scaled training improves the best validation geomean over EXP-006 by ≥ 2% relative.
+  - H4: scaled DQN with the wrapper still does not beat O2 on generated test programs. EXP-011
+    bounds what any schedule could gain.
+- **Configuration:** `experiments/EXP-012-dqn-followup/run.py --part both --workers 3`.

@@ -222,3 +222,22 @@ def test_training_job_trains_validates_and_checkpoints(tmp_path: Path) -> None:
     assert job.checkpoint.exists() and log["invalid_transformations"] == 0
     assert isinstance(log["validation"], list) and len(log["validation"]) == 2
     assert isinstance(log["best_validation"], float) and 0 < log["best_validation"] <= 1.0
+
+
+def test_no_retry_dqn_policy_never_repeats_a_pass_in_an_unchanged_state() -> None:
+    from forgecompile.driver import build_ir
+    from forgecompile.ir.printer import format_module
+    from forgecompile.ml.dataset import apply_pass
+    from forgecompile.ml.policies import schedule
+
+    env = make_env()
+    agent = DQNAgent(env.obs_size, env.n_actions, DQNConfig(warmup_steps=5))
+    train(env, agent, episodes=2)  # type: ignore[arg-type]
+    policy = DQNPolicy(agent, no_retry=True)
+    result = schedule(policy, build_ir(LOOPY), max_steps=12)
+    module, seen = build_ir(LOOPY), set()
+    for action in result.actions:  # replay: no (state, pass) pair may occur twice
+        key = (format_module(module), action)
+        assert key not in seen
+        seen.add(key)
+        module = apply_pass(module, action)

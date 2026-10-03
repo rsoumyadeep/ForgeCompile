@@ -32,6 +32,7 @@ class TrainingJob:
     horizon: int = 12
     validate_every: int = 100
     actions: tuple[str, ...] = field(default_factory=lambda: tuple(ACTIONS))
+    no_retry: bool = False  # validate (and so select checkpoints) with the no-retry wrapper
 
 
 def geomean(values: list[float]) -> float:
@@ -55,7 +56,7 @@ def run_training_job(job: TrainingJob) -> dict[str, object]:
         ratios = []
         for program in job.val_programs:
             module = build_ir(program.source, program.name)
-            policy = DQNPolicy(candidate, job.horizon, actions=env.actions)
+            policy = DQNPolicy(candidate, job.horizon, actions=env.actions, no_retry=job.no_retry)
             result = schedule(policy, module, job.horizon)
             ratios.append(evaluator(result.module) / evaluator(module))
         return geomean(ratios)
