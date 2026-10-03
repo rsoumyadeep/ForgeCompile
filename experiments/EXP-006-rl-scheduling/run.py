@@ -23,15 +23,25 @@ from __future__ import annotations
 import argparse
 import json
 import math
-from dataclasses import asdict
+import shutil
+import time
+from collections.abc import Callable
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from forgecompile.driver import build_ir
 from forgecompile.ml.data_pipeline import DatasetConfig, build_dataset, program_splits
-from forgecompile.ml.dataset import CostEvaluator
+from forgecompile.ml.dataset import CostEvaluator, ProgramSpec
 from forgecompile.ml.evaluate import evaluate_policies, markdown_summary, summarize
 from forgecompile.ml.models import select_model
-from forgecompile.ml.policies import FixedPipelinePolicy, ModelPolicy, OraclePolicy, schedule
+from forgecompile.ml.policies import (
+    FixedPipelinePolicy,
+    ModelPolicy,
+    OraclePolicy,
+    Policy,
+    schedule,
+)
 from forgecompile.optimization.pass_manager import PRESETS
 from forgecompile.rl.dqn import DQNAgent, DQNConfig, DQNPolicy, train
 from forgecompile.rl.env import PassSchedulingEnv, RewardConfig
@@ -48,6 +58,51 @@ def write(path: Path, text: str) -> None:
 
 def geomean(values: list[float]) -> float:
     return math.exp(sum(math.log(max(v, 1e-12)) for v in values) / len(values))
+
+
+@dataclass(frozen=True)
+class SeedJob:
+    seed: int
+    train_programs: list[ProgramSpec]
+    val_programs: list[ProgramSpec]
+    reward: RewardConfig
+    args: argparse.Namespace
+    run_dir: Path
+
+
+def train_seed(job: SeedJob) -> tuple[int, dict[str, object]]:
+    """Train one seed in its own process (own cost cache); keep the best validation checkpoint."""
+    args = job.args
+    evaluator = CostEvaluator("cost")
+    env = PassSchedulingEnv(job.train_programs, HORIZON, job.reward, evaluator, seed=job.seed)
+    config = DQNConfig(gamma=args.gamma, warmup_steps=args.warmup, seed=job.seed)
+    agent = DQNAgent(env.obs_size, env.n_actions, config)
+    checkpoint = job.run_dir / f"dqn_seed{job.seed}.npz"
+
+    def validate(candidate: DQNAgent) -> float:
+        ratios = []
+        for program in job.val_programs:
+            module = build_ir(program.source, program.name)
+            result = schedule(DQNPolicy(candidate, HORIZON), module, HORIZON)
+            ratios.append(evaluator(result.module) / evaluator(module))
+        return geomean(ratios)
+
+    start = time.perf_counter()
+    log = train(env, agent, args.episodes, validate, args.validate_every, checkpoint)
+    seconds = time.perf_counter() - start
+    if not checkpoint.exists():  # too few episodes to validate even once
+        agent.save(checkpoint)
+    return job.seed, {
+        "train_seconds": seconds,
+        "env_steps": agent.steps,
+        "episode_returns": log.episode_returns,
+        "episode_ratios": log.episode_ratios,
+        "epsilons": log.epsilons,
+        "loss_every_100": log.losses[::100],
+        "validation": log.validation,
+        "invalid_transformations": log.invalid_transformations,
+        "cache_size": len(evaluator.cache),
+    }
 
 
 def main() -> None:
@@ -68,6 +123,9 @@ def main() -> None:
         "--workers", type=int, default=4, help="dataset workers (supervised baseline)"
     )
     parser.add_argument(
+        "--seed-workers", type=int, default=3, help="seeds trained in parallel processes"
+    )
+    parser.add_argument(
         "--sanity", action="store_true", help="tiny run; separate id, no curated output"
     )
     args = parser.parse_args()
@@ -85,51 +143,37 @@ def main() -> None:
             "horizon": HORIZON,
             "validate_every": args.validate_every,
             "max_val": args.max_val,
+            "seed_workers": args.seed_workers,
         },
         seed=args.seeds[0],
         repo_dir=REPO,
     )
     with run:  # an exception marks the run failed, preserving its directory
         splits = program_splits(dataset_config)
-        val_programs = splits["val"][: args.max_val]
-        evaluator = CostEvaluator("cost")  # shared memo across training, validation and evaluation
-        agents: dict[int, DQNAgent] = {}
         training: dict[str, dict[str, object]] = {}
-        for seed in args.seeds:
-            env = PassSchedulingEnv(splits["train"], HORIZON, reward, evaluator, seed=seed)
-            agent = DQNAgent(
-                env.obs_size,
-                env.n_actions,
-                DQNConfig(gamma=args.gamma, warmup_steps=args.warmup, seed=seed),
+        # Seeds are independent: train them in parallel processes (bounded by --seed-workers).
+        jobs = [
+            SeedJob(seed, splits["train"], splits["val"][: args.max_val], reward, args, run.run_dir)
+            for seed in args.seeds
+        ]
+        with ProcessPoolExecutor(max_workers=min(args.seed_workers, len(jobs))) as pool:
+            futures = [pool.submit(train_seed, job) for job in jobs]
+            for future in as_completed(futures):
+                seed, record = future.result()
+                training[str(seed)] = record
+                run.save_json("training.json", training)  # incremental: survives a later crash
+        evaluator = CostEvaluator("cost")
+        env_shape = PassSchedulingEnv(splits["train"][:1], HORIZON, reward, evaluator)
+        agents = {
+            seed: DQNAgent.load(
+                run.run_dir / f"dqn_seed{seed}.npz", env_shape.obs_size, env_shape.n_actions
             )
-            checkpoint = run.run_dir / f"dqn_seed{seed}.npz"
-
-            def validate(candidate: DQNAgent) -> float:
-                ratios = []
-                for program in val_programs:
-                    module = build_ir(program.source, program.name)
-                    result = schedule(DQNPolicy(candidate, HORIZON), module, HORIZON)
-                    ratios.append(evaluator(result.module) / evaluator(module))
-                return geomean(ratios)
-
-            log = train(env, agent, args.episodes, validate, args.validate_every, checkpoint)
-            if not checkpoint.exists():  # too few episodes to validate even once
-                agent.save(checkpoint)
-            agents[seed] = DQNAgent.load(checkpoint, env.obs_size, env.n_actions)
-            training[str(seed)] = {
-                "episode_returns": log.episode_returns,
-                "episode_ratios": log.episode_ratios,
-                "epsilons": log.epsilons,
-                "loss_every_100": log.losses[::100],
-                "validation": log.validation,
-                "invalid_transformations": log.invalid_transformations,
-                "cache_size": len(evaluator.cache),
-            }
-            run.save_json("training.json", training)  # incremental: survives a later crash
+            for seed in args.seeds
+        }
 
         data = build_dataset(dataset_config, workers=args.workers)
         model, _ = select_model(data["train"], data["val"], seed=0)
-        policies = [
+        policies: list[Callable[[], Policy]] = [
             lambda: FixedPipelinePolicy("O2", PRESETS["O2"]),
             lambda: ModelPolicy(model, name=f"model:{model.name}"),
             lambda: OraclePolicy(evaluator),
@@ -148,6 +192,12 @@ def main() -> None:
         write(HERE / "results.md", markdown)
         write(HERE / "summary.json", json.dumps(table, indent=2, sort_keys=True) + "\n")
         write(HERE / "training.json", json.dumps(training, sort_keys=True) + "\n")
+        checkpoints = HERE / "checkpoints"  # small (~0.2 MB each); EXP-008 loads them
+        checkpoints.mkdir(exist_ok=True)
+        for seed in args.seeds:
+            for suffix in (".npz", ".json"):
+                name = f"dqn_seed{seed}{suffix}"
+                shutil.copyfile(run.run_dir / name, checkpoints / name)
         write(
             HERE / "metadata.json",
             json.dumps(run.metadata, indent=2, sort_keys=True, default=str) + "\n",

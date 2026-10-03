@@ -189,3 +189,64 @@ Rules:
 - **Configuration:** `experiments/EXP-003-fc-vs-llvm/run.py --repeats 7 --seeds 0 1`
   (5 configurations, 10 benchmarks, 2 full runs).
 - **Results / interpretation:** below, after the run.
+
+## EXP-007 — Validation of the training-data generator (run before any model is trained)
+
+- **Date:** 2026-10-03
+- **Objective:** Establish that the ML/RL dataset is deterministic, leak-free and made of
+  real, reproducible measurements, before any model is fit on it.
+- **Method:** `scripts/validate_dataset.py`. The checks are listed in its docstring:
+  determinism across worker counts, name and source disjointness of splits, program validity,
+  record invariants, from-scratch replay of features and outcome tables, and output
+  preservation of every replayed state and one-step outcome.
+- **Results:** below, after the run.
+
+## EXP-004 — Can a model predict the best next pass from static IR features?
+
+- **Date:** 2026-10-03 (pre-registered before the full run; sanity runs only before this)
+- **Hypotheses:**
+  - H1: The selected model's test mean regret is below half that of the majority-class
+    baseline.
+  - H2: Tree ensembles (RF/GBDT) beat the decision tree and the MLP on validation regret,
+    because the features are heterogeneous counts.
+  - H3: On OOD (hand-written) programs the regret advantage shrinks. Their label distribution
+    differs (copyprop-dominated in the sanity data, versus sccp/constfold on generated code).
+- **Configuration:** `experiments/EXP-004-pass-prediction/run.py --workers 8` with 400/100/100
+  generated programs (seeds 100000–100599, `LOOP_HEAVY`, trap-free per D-036), 17 OOD programs,
+  8 steps, ε = 0.3 and model seed 0.
+- **Metrics:** mean regret (primary), near-optimal rate, accuracy and top-2 accuracy.
+- **Rule:** the model is selected on validation regret, and test/OOD are each scored once.
+
+## EXP-005 — Does ML-guided scheduling beat fixed pipelines end to end?
+
+- **Date:** 2026-10-03 (pre-registered)
+- **Hypotheses:**
+  - H1: On generated test programs the model policy reaches a lower geomean cost ratio than O2.
+  - H2: Oracle-greedy ≤ model. The model recovers at least half of the gap between O2 and
+    oracle-greedy.
+  - H3: On OOD programs the model does *not* beat O2. O2 was hand-designed for code like
+    the OOD set.
+  - H4: The model's decision overhead (feature extraction + inference) is ≥ 10× smaller than
+    oracle-greedy's, but not negligible next to running a pass.
+- **Configuration:** same dataset as EXP-004. Budget of 12 passes. Policies: O1, O2,
+  random-k12 × 3 seeds, frequency, model, oracle-greedy. Every final program's output is
+  checked.
+- **Metrics:** geomean final/initial interpreter cost, best and worst ratio, passes, decision
+  ms, schedule ms. Native runtime is measured separately for the benchmark kernels (EXP-002
+  covers the cost↔native relation).
+
+## EXP-006 — Does a DQN agent beat greedy and fixed baselines?
+
+- **Date:** 2026-10-03 (pre-registered)
+- **Hypotheses:**
+  - H1: DQN (best validation checkpoint) beats O2 on generated test programs.
+  - H2: DQN does **not** beat oracle-greedy by a meaningful margin (> 1% geomean). EXP-001
+    suggests most gains are available greedily, and lookahead is needed only for enabling
+    pairs like copyprop→bce.
+  - H3: DQN vs the supervised model: no prediction; this is the question.
+  - H4: Zero invalid transformations during training and evaluation.
+- **Configuration:** `experiments/EXP-006-rl-scheduling/run.py --episodes 3000 --seeds 0 1 2`.
+  Horizon 12, λ = 0.002, γ = 1, warm-up 500, Double DQN 2 × 128, checkpoint selected on 40
+  validation programs every 100 episodes.
+- **Metrics:** as EXP-005, plus the training curves (return, cost ratio, ε, loss, validation
+  geomean).
