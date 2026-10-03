@@ -597,3 +597,17 @@ one and links back to it.
 - **Trade-offs:**
   - Larger architectures (e.g. GNNs over the IR) would need a framework.
   - Hand-written gradients need tests: `test_mlp_backward_matches_numerical_gradient`.
+
+## D-040 — What "dirty" means in run metadata
+
+- **Date:** 2026-10-03
+- **Context:**
+  - Experiments write their curated results into `experiments/EXP-*/` when they finish.
+  - In a chain of runs, those new untracked files made every later run report
+    `dirty: true` under `git status --porcelain`, although the code was exactly the commit.
+- **Chosen:** a run is dirty if a *tracked* file is modified, or if anything (tracked or
+  untracked) is uncommitted under `src/`.
+- **Why:** the flag answers "does this commit describe the code that ran?". Untracked files
+  under `src/` could be imported, so they count. New result files cannot change behaviour.
+- **Unchanged:** `scripts/server/launch.sh` still refuses to *start* on any uncommitted change,
+  including untracked files.

@@ -61,3 +61,21 @@ def test_source_tree_revision_ignores_other_paths_and_detects_dirty_source(tmp_p
     assert source_tree_revision(tmp_path) == tree
     (tmp_path / "src" / "forgecompile" / "a.py").write_text("x = 2\n")  # uncommitted source
     assert source_tree_revision(tmp_path) is None
+
+
+def test_dirty_flag_ignores_untracked_results_but_not_source(tmp_path: Path) -> None:
+    import subprocess
+
+    def git(*args: str) -> None:
+        subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
+
+    git("init", "-q")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("x = 1\n")
+    git("add", "-A")
+    git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "one")
+    assert git_revision(tmp_path) == {"commit": git_revision(tmp_path)["commit"], "dirty": False}  # type: ignore[index]
+    (tmp_path / "results.md").write_text("new curated results\n")  # untracked, outside src
+    assert git_revision(tmp_path)["dirty"] is False  # type: ignore[index]
+    (tmp_path / "src" / "b.py").write_text("y = 2\n")  # untracked source counts
+    assert git_revision(tmp_path)["dirty"] is True  # type: ignore[index]

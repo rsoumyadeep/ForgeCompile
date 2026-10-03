@@ -75,8 +75,12 @@ def conditions() -> list[Condition]:
     return out
 
 
-def dataset_config(profile: str, seed: int) -> DatasetConfig:
-    return DatasetConfig(profile=profile, seed=seed)
+Sizes = tuple[int, int, int]  # programs in train / val / test (defaults 400 / 100 / 100)
+
+
+def dataset_config(profile: str, seed: int, sizes: Sizes = (400, 100, 100)) -> DatasetConfig:
+    n_train, n_val, n_test = sizes
+    return DatasetConfig(n_train=n_train, n_val=n_val, n_test=n_test, profile=profile, seed=seed)
 
 
 def subsample(records: list[StateRecord], k: int, seed: int) -> list[StateRecord]:
@@ -90,13 +94,13 @@ def geomean(values: list[float]) -> float:
     return math.exp(sum(math.log(max(v, 1e-12)) for v in values) / len(values))
 
 
-def run_condition(job: tuple[Condition, int]) -> dict[str, object]:
-    cond, seed = job
-    data = {p: build_dataset(dataset_config(p, seed), workers=1) for p in PROFILES}  # cache hits
+def run_condition(job: tuple[Condition, int, Sizes]) -> dict[str, object]:
+    cond, seed, sizes = job
+    data = {p: build_dataset(dataset_config(p, seed, sizes), workers=1) for p in PROFILES}
     eval_programs: dict[str, list[ProgramSpec]] = {
-        p: program_splits(dataset_config(p, seed))["test"] for p in PROFILES
+        p: program_splits(dataset_config(p, seed, sizes))["test"] for p in PROFILES
     }
-    eval_programs["ood"] = program_splits(dataset_config("loop_heavy", seed))["ood"]
+    eval_programs["ood"] = program_splits(dataset_config("loop_heavy", seed, sizes))["ood"]
     eval_records = {p: data[p]["test"] for p in PROFILES} | {"ood": data["loop_heavy"]["ood"]}
     evaluator = CostEvaluator("cost")
     row: dict[str, object] = {"family": cond.family, "condition": cond.name}
@@ -134,16 +138,20 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--only", help="comma-separated families (sanity runs)")
+    parser.add_argument(
+        "--sizes", type=int, nargs=3, default=[400, 100, 100], help="train/val/test programs"
+    )
     parser.add_argument("--sanity", action="store_true", help="separate id, no curated output")
     args = parser.parse_args()
 
+    sizes: Sizes = (args.sizes[0], args.sizes[1], args.sizes[2])
     todo = conditions()
     if args.only:
         todo = [c for c in todo if c.family in args.only.split(",")]
     run = ExperimentRun.create(
         "EXP-009-ml-ablations" + ("-sanity" if args.sanity else ""),
         {
-            "datasets": {p: dataset_config(p, args.seed).__dict__ for p in PROFILES},
+            "datasets": {p: dataset_config(p, args.seed, sizes).__dict__ for p in PROFILES},
             "conditions": [c.__dict__ for c in todo],
             "max_steps": MAX_STEPS,
         },
@@ -152,10 +160,10 @@ def main() -> None:
     )
     with run:
         for profile in PROFILES:  # build (or load) both datasets once, in parallel
-            build_dataset(dataset_config(profile, args.seed), workers=args.workers)
+            build_dataset(dataset_config(profile, args.seed, sizes), workers=args.workers)
         rows: list[dict[str, object]] = []
         with ProcessPoolExecutor(max_workers=args.workers) as pool:
-            for row in pool.map(run_condition, [(c, args.seed) for c in todo]):
+            for row in pool.map(run_condition, [(c, args.seed, sizes) for c in todo]):
                 rows.append(row)
                 run.save_json("rows.json", rows)  # incremental
     run.finalize("completed", {"conditions": len(rows)})

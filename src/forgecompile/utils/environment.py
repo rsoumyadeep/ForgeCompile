@@ -99,8 +99,12 @@ def git_revision(repo_dir: Path | None = None) -> dict[str, object] | None:
     commit = _run(["git", "rev-parse", "HEAD"], cwd=repo_dir)
     if commit is None:
         return None
-    status = _run(["git", "status", "--porcelain"], cwd=repo_dir)
-    return {"commit": commit, "dirty": bool(status)}
+    # Dirty = a modified tracked file, or anything uncommitted in the compiler package.
+    # New untracked files elsewhere (e.g. curated results an earlier run just wrote into
+    # experiments/) do not change what the commit means, so they do not count.
+    tracked = _run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=repo_dir)
+    source = _run(["git", "status", "--porcelain", "--", "src"], cwd=repo_dir)
+    return {"commit": commit, "dirty": bool(tracked) or bool(source)}
 
 
 def source_tree_revision(repo_dir: Path, subdir: str = "src/forgecompile") -> str | None:
