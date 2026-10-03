@@ -33,6 +33,13 @@ why.
   - DQN lost to both;
   - a beam search over all 12-pass schedules found only about 1% headroom above `-O2`;
   - the root causes (tiny action gaps, workload-coverage gaps) are documented.
+- Measured native performance with a correctness-gated, interleaved benchmark harness
+  (run-to-run median difference 0.53%):
+  - the compiler's own `-O2` pipeline makes LLVM `-O0` code 1.18× faster and 13% smaller;
+  - after LLVM `-O2` it still shrinks code by 8.9%;
+  - the interpreter cost model used as the ML/RL reward is only weakly aligned with native
+    time (Spearman 0.29). That misalignment explains the two kernels where learned policies
+    beat `-O2` natively.
 - Ran experiments reproducibly on a shared 64-thread server:
   - pre-registered hypotheses;
   - per-run metadata (commit, environment, load);
@@ -43,5 +50,6 @@ why.
 ## What not to claim
 
 - Not "ML improves compiler performance". It did not here (EXP-005/006/011).
-- Not native speedups beyond what EXP-002/003/008 report.
+- Not native speedups beyond EXP-003/008: 1.18× for the compiler's own `-O2` at LLVM `-O0`,
+  and no learned scheduler beating `-O2` beyond noise.
 - Not "state-of-the-art RL": it is a small, from-scratch Double DQN, and that is the point.

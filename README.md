@@ -11,12 +11,30 @@ MiniLang source ─► lexer ─► parser ─► AST ─► semantic analysis
         ─► LLVM IR ─► native executable
 ```
 
-> **Project status:** the compiler (Phases 0–5), the benchmark harness (Phase 6), supervised
-> pass selection (Phase 7), and the RL environment and Double-DQN agent (Phases 8–9) are
-> implemented and tested. Experiments are running on a lab server; every number in
-> [docs/RESULTS.md](docs/RESULTS.md) comes from a recorded run. So far, the learned
-> supervised scheduler does **not** beat the hand-written O2 pipeline (EXP-005). See
-> [docs/ROADMAP.md](docs/ROADMAP.md). This README describes only what exists.
+> **Project status:** complete through Phase 10. The compiler (Phases 0–5), the benchmark
+> harness (6), supervised pass selection (7), and the RL environment and Double-DQN agent (8–9)
+> are implemented, tested (772 tests) and evaluated on a lab server (Phase 10). Phase 11 is the
+> final audit. See [docs/ROADMAP.md](docs/ROADMAP.md). This README describes only what exists.
+
+## Results in brief
+
+Every number is in [docs/RESULTS.md](docs/RESULTS.md), with its experiment, commit and raw data.
+
+- **The compiler works and its optimizations pay off natively.**
+  - ForgeCompile `-O2` makes LLVM `-O0` code 1.18× faster (up to 1.50×) and 13% smaller.
+  - LLVM's own `-O2` is 7.4× faster. On top of it, ForgeCompile still shrinks code by 8.9%
+    (EXP-003).
+- **Learned pass scheduling does not beat the hand-written `-O2` pipeline, on the proxy or
+  natively.**
+  - Gradient boosting beats the majority baseline 4.4× on one-step regret, yet loses to `-O2`
+    end to end (EXP-004/005).
+  - A Double DQN loses to both (EXP-006/012).
+  - Natively, nothing beats `-O2` beyond the 3% noise band (EXP-008).
+- **Why:**
+  - Beam search over all 12-pass schedules finds only about 1% headroom above `-O2` (EXP-011).
+  - The interpreter cost that the learners optimize correlates only weakly with native time
+    (Spearman 0.29, EXP-002).
+  - The answers to all ten research questions are in RESULTS.md.
 
 ## Quick start
 
@@ -38,7 +56,6 @@ uv run forgecompile run --schedule oracle examples/matmul.mini     # per-program
 uv run python scripts/e2e_sanity.py                                # whole ML/RL pipeline, ~30 s
 ```
 
-Measured results: [docs/RESULTS.md](docs/RESULTS.md).
 
 See [docs/HOW_TO_RUN.md](docs/HOW_TO_RUN.md) for details.
 
