@@ -160,3 +160,20 @@ scheduling; 17 conditions; commit `e37527c`. Data: `experiments/EXP-009-ml-ablat
 | How much data? | **Flat learning curve.** 25 programs (188 states) give regret 0.0149 vs 0.0152 with 400 programs; there is no monotonic trend. |
 | Distribution shift? | **Asymmetric.** `loop_heavy` → `default` transfers well (regret 0.0097, better than the in-distribution `default` model's 0.0117). `default` → `loop_heavy` costs 6% end to end (0.616 vs 0.580). |
 | Beats O2 anywhere? | **No.** Best end-to-end 0.572 vs O2 0.558 (`loop_heavy`) and 0.513 vs 0.505 (`default`). OOD: 7–17% worse than O2. |
+
+## EXP-010 — RL formulation ablations: reward, discount, action space (Phase 10)
+
+**Setup:** 7 conditions × 2 seeds × 2,000 episodes; evaluated plain and with no-retry; references
+O2 and oracle-greedy restricted to each action space; commit `e37527c`. Data:
+`experiments/EXP-010-rl-ablations/`.
+
+| question | finding (generated test, geomean cost ratio) |
+|---|---|
+| Does a larger step penalty help (λ 0.002 → 0.01)? | **No** (0.650 vs 0.646, mean of seeds). λ = 0 is slightly worse (0.673). |
+| Does discounting matter (γ 1 → 0.9)? | **No** (< 1% change). |
+| Does a size term steer the agent (w_size = 0.5)? | **Yes:** static size ratio 0.359 vs 0.428 at no cost penalty. |
+| Does the action space matter? | **Yes.** Without copyprop, even the greedy oracle drops (0.565 vs 0.553; benchmarks 0.856 vs 0.741). With only the O1 passes, DQN gets much closer to its oracle (≈ 9% vs ≈ 17%). |
+| Does any variant beat O2 (0.558)? | **No.** Best 0.601. The no-retry wrapper helps in all 14 trainings (1.6–9.5%). |
+
+EXP-010's base condition reproduced EXP-006's seeds 0 and 1 bit-exactly: identical validation
+scores and test ratios.

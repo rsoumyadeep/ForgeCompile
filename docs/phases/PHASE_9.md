@@ -66,8 +66,8 @@ which leaves the agent almost nothing to learn relative to its estimation noise.
 ## Known limitations
 - Value-based RL on a POMDP with about 1% headroom. A policy-gradient or offline-RL agent
   pre-filled with the supervised data's complete outcome tables was not tried (future work).
-- EXP-006 ran before the thread caps, so retraining reproduces it only up to small BLAS
-  floating-point differences.
+- Reproducibility is good: EXP-010's `base` condition retrained two EXP-006 seeds under
+  different threading and matched them bit-exactly.
 - The checkpoints selected by validation are close to untrained networks. Learning adds little.
 
 ## Files changed

@@ -459,10 +459,13 @@ These are tiny-data results and are **not evidence** for any hypothesis.
   - EXP-006 is kept exactly as pre-registered and run.
   - The fair-wrapper comparison and a scaled-up training run are the pre-registered
     follow-up EXP-012.
-- **Reproducibility caveat (found later, F-017):** this run predates the per-process thread
-  caps, so NumPy's BLAS ran multithreaded. Multithreaded BLAS can change floating-point
-  summation order, so retraining the DQN seeds reproduces these curves only up to small
-  numerical differences. The tree models (oracle labels, GBDT) are unaffected.
+- **Reproducibility (update):**
+  - This run predates the per-process thread caps (F-017), so NumPy's BLAS may have run
+    multithreaded. I first noted that retraining might differ in the last digits.
+  - EXP-010's `base` condition then retrained seeds 0 and 1 under single-threaded BLAS and
+    reproduced this run **bit-exactly**: identical best validation scores and test ratios.
+  - The caveat does not apply in practice. These matrices are too small for BLAS to split
+    across threads.
 - **Next action:** EXP-012 (no-retry wrapper for DQN, validated on validation programs first,
   then 4× more training). EXP-010 (λ, γ, action space) tests whether a larger action gap
   (λ = 0.01) helps.
@@ -708,6 +711,53 @@ These are tiny-data results and are **not evidence** for any hypothesis.
     problem is smaller.
   - H5: no condition beats O2 on generated test programs.
 - **Configuration:** `experiments/EXP-010-rl-ablations/run.py --episodes 2000 --seeds 0 1 --workers 16`.
+- **Run:** commit `e37527c`, server, 16 single-threaded workers, 19 min (14 DQN trainings plus 4
+  references in parallel). 0 invalid transformations. Curated results are in
+  `experiments/EXP-010-rl-ablations/`.
+- **Reproducibility check (unplanned, positive):**
+  - The `base` condition reproduced EXP-006 seeds 0 and 1 **bit-exactly**: best validation
+    0.6898499144743802 and 0.6950184889877898, and generated-test ratios 0.632 / 0.660.
+  - This held although EXP-010 trained 2,000 episodes instead of 3,000 (both best checkpoints
+    came earlier) and ran with single-threaded BLAS (F-017).
+- **Results** (generated test programs, geomean cost ratio; seeds 0 / 1; lower is better):
+
+  | condition | plain DQN | + no-retry | size ratio (plain) | passes (plain) | benchmarks (plain) |
+  |---|---:|---:|---:|---:|---:|
+  | base (λ 0.002, γ 1, 11 passes) | 0.632 / 0.660 | 0.609 / 0.625 | 0.461 / 0.395 | 9.8 / 12.0 | 0.894 / 0.956 |
+  | λ = 0 | 0.694 / 0.652 | 0.628 / 0.609 | 0.494 / 0.379 | 12.0 / 9.9 | 0.895 / 0.985 |
+  | λ = 0.01 | 0.648 / 0.653 | 0.604 / 0.609 | 0.421 / 0.369 | 11.6 / 10.7 | 0.921 / 0.969 |
+  | γ = 0.9 | 0.647 / 0.654 | 0.605 / 0.615 | 0.413 / 0.421 | 11.8 / 11.8 | 0.987 / 0.929 |
+  | w_size = 0.5 | 0.655 / 0.643 | 0.601 / 0.611 | **0.369 / 0.349** | 11.5 / 11.6 | 0.980 / 0.879 |
+  | actions: O1 only | 0.655 / 0.646 | 0.627 / 0.609 | 0.444 / 0.489 | 11.3 / 12.0 | 0.940 / 0.985 |
+  | actions: − copyprop | 0.625 / 0.628 | 0.615 / 0.610 | 0.317 / 0.451 | 10.8 / 10.3 | 0.950 / 0.908 |
+  | *O2* | *0.558* | | *0.241* | *12* | *0.741* |
+  | *oracle (all 11 passes)* | *0.553* | | *0.265* | *7.5* | *0.741* |
+  | *oracle (O1 passes)* | *0.596* | | *0.370* | *5.3* | *0.925* |
+  | *oracle (− copyprop)* | *0.565* | | *0.289* | *6.6* | *0.856* |
+
+- **Hypotheses.**
+  - **H1 rejected:** λ = 0.01 does not improve the plain DQN (mean 0.650 vs 0.646 for base),
+    and it does not consistently reduce passes. λ = 0 is somewhat worse (mean 0.673). A 5×
+    larger action gap is still too small relative to Q-estimation error.
+  - **H2 supported:** γ = 0.9 changes the cost ratio by < 1% (mean 0.650 vs 0.646).
+  - **H3 supported:** w_size = 0.5 lowers the static size ratio (mean 0.359 vs 0.428) at a
+    negligible cost-ratio change (0.649 vs 0.646). The multi-objective reward does steer the
+    agent.
+  - **H4 supported (both parts):**
+    - Removing copyprop worsens even the greedy oracle: 0.565 vs 0.553, and on benchmarks
+      0.856 vs 0.741, since copyprop enables bce/strength.
+    - In the O1-only action space the plain DQN is about 9% from its oracle (0.655 / 0.646 vs
+      0.596), against about 17% for base. With no-retry the gap is 2–5% vs 10–13%. A smaller
+      action space is easier to learn.
+  - **H5 supported:** no condition beats O2 (0.558). The best is 0.601 (w_size = 0.5 +
+    no-retry).
+- **Consistent across all 14 trainings:** the no-retry wrapper improves every condition, by
+  1.6–9.5% on generated programs.
+- **Interpretation:**
+  - Reward shaping (λ, γ) barely matters, so the agent's limit is not the reward definition.
+  - Action-space size matters a lot, both for what is achievable (removing copyprop) and for
+    how close the agent gets (the O1 subset).
+  - Multi-objective weights work as intended for code size.
 
 ## EXP-008 — Do learned schedules make native code faster or smaller, and at what overhead?
 
