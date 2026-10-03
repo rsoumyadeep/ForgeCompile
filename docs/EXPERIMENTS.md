@@ -506,3 +506,49 @@ These are tiny-data results and are **not evidence** for any hypothesis.
   - H4: scaled DQN with the wrapper still does not beat O2 on generated test programs. EXP-011
     bounds what any schedule could gain.
 - **Configuration:** `experiments/EXP-012-dqn-followup/run.py --part both --workers 3`.
+
+## EXP-009 — Ablations of the supervised scheduler (features, data size, distribution)
+
+- **Date:** 2026-10-03 (pre-registered)
+- **Protocol:** EXP-004 per condition: select on validation regret, refit on train + val,
+  report test/OOD regret and end-to-end geomean cost ratio (greedy model policy, budget 12).
+  O2 and oracle-greedy are evaluated on the same programs for reference.
+- **Conditions:**
+  - feature groups: all; minus each of 7 groups; only `opportunities`;
+  - training programs: 25, 50, 100, 200, 400;
+  - train profile `loop_heavy` vs `default`, each evaluated on both profiles' test programs and
+    on OOD.
+- **Hypotheses:**
+  - H1: removing `opportunities` increases test regret the most. `only:opportunities` recovers
+    ≥ 70% of the all-features regret reduction over the majority baseline (0.0670 → 0.0152).
+  - H2: regret falls with more training programs, with diminishing returns beyond 200.
+  - H3: cross-profile evaluation increases regret relative to in-profile evaluation.
+  - H4: in no condition does the model policy beat O2 end to end on generated programs
+    (follows from EXP-005).
+- **Configuration:** `experiments/EXP-009-ml-ablations/run.py --workers 16`.
+
+## EXP-010 — Ablations of the RL formulation (reward, discount, action space)
+
+- **Date:** 2026-10-03 (pre-registered)
+- **Protocol:**
+  - EXP-006 training (plain-argmax validation), 2 seeds × 2,000 episodes per condition.
+  - Evaluated on test and OOD with the plain and the no-retry wrapper.
+  - References: O2, and oracle-greedy restricted to each action space.
+- **Conditions:**
+  - base (λ = 0.002, γ = 1, w_size = 0, 11 passes);
+  - λ = 0 and λ = 0.01;
+  - γ = 0.9;
+  - w_size = 0.5;
+  - actions: O1 passes only;
+  - actions: all passes but copyprop.
+- **Hypotheses:**
+  - H1: λ = 0.01 (5× larger action gap) reduces repeated passes and mean passes, and improves
+    the plain DQN's cost ratio over base. λ = 0 makes repetition worse.
+  - H2: γ = 0.9 changes the cost ratio by less than 2% relative to base, because the horizon is
+    short and most gain comes early.
+  - H3: w_size = 0.5 lowers the size ratio relative to base, at some cost-ratio penalty.
+  - H4: removing copyprop worsens even the restricted oracle, because copyprop enables
+    bce/strength (EXP-001). With the O1 action space, the DQN-to-oracle gap shrinks, since the
+    problem is smaller.
+  - H5: no condition beats O2 on generated test programs.
+- **Configuration:** `experiments/EXP-010-rl-ablations/run.py --episodes 2000 --seeds 0 1 --workers 16`.

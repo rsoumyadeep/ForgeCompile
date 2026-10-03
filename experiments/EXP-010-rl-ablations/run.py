@@ -26,8 +26,10 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, field, replace
+from functools import partial
 from pathlib import Path
 
 from forgecompile.ml.data_pipeline import DatasetConfig, program_splits
@@ -79,18 +81,22 @@ class Task:
 def run_task(task: Task) -> dict[str, object]:
     evaluator = CostEvaluator("cost")
     record: dict[str, object] = {"task": task.name, "kind": task.kind}
-    policy: Policy
+    policies: list[Callable[[], Policy]]
     if task.job is not None:
         record["training"] = run_training_job(task.job)
         actions = [*task.job.actions, STOP]
         obs_size = len(FEATURE_NAMES) + 1 + len(actions)
         agent = DQNAgent.load(task.job.checkpoint, obs_size, len(actions))
-        policy = DQNPolicy(agent, HORIZON, name=task.name, actions=actions)
+        # Both wrappers (EXP-012): the plain argmax (EXP-006 protocol) and no-retry.
+        policies = [
+            partial(DQNPolicy, agent, HORIZON, task.name, actions),
+            partial(DQNPolicy, agent, HORIZON, f"{task.name}+noretry", actions, no_retry=True),
+        ]
     elif task.name == "O2":
-        policy = FixedPipelinePolicy("O2", PRESETS["O2"])
+        policies = [partial(FixedPipelinePolicy, "O2", PRESETS["O2"])]
     else:
-        policy = OraclePolicy(evaluator, name=task.name, actions=task.actions)
-    outcomes = evaluate_policies(task.eval_programs, [lambda: policy], evaluator, HORIZON)
+        policies = [partial(OraclePolicy, evaluator, task.name, task.actions)]
+    outcomes = evaluate_policies(task.eval_programs, policies, evaluator, HORIZON)
     record["summary"] = summarize(outcomes)
     record["outcomes"] = [
         asdict(o) | {"ratio": o.ratio, "size_ratio": o.size_ratio} for o in outcomes
@@ -175,14 +181,12 @@ def main() -> None:
         training = r.get("training")
         best_val = training.get("best_validation") if isinstance(training, dict) else None
         for origin in ("generated", "benchmark", "example", "all"):
-            m = summary.get(origin, {}).get(r["task"])
-            if m is None:
-                continue
-            val = f"{best_val:.3f}" if isinstance(best_val, float) and origin == "all" else ""
-            lines.append(
-                f"| {r['task']} | {origin} | {m['geomean_ratio']:.3f} | "
-                f"{m['geomean_size_ratio']:.3f} | {m['mean_passes']:.1f} | {val} |"
-            )
+            for policy, m in sorted(summary.get(origin, {}).items()):
+                val = f"{best_val:.3f}" if isinstance(best_val, float) and origin == "all" else ""
+                lines.append(
+                    f"| {policy} | {origin} | {m['geomean_ratio']:.3f} | "
+                    f"{m['geomean_size_ratio']:.3f} | {m['mean_passes']:.1f} | {val} |"
+                )
     markdown = "\n".join(lines) + "\n"
     if not args.sanity:
         compact = [
