@@ -408,3 +408,21 @@ These are tiny-data results and are **not evidence** for any hypothesis.
   validation programs every 100 episodes.
 - **Metrics:** as EXP-005, plus the training curves (return, cost ratio, ε, loss, validation
   geomean).
+
+## EXP-011 — Headroom: how much better than O2 can any 12-pass schedule be?
+
+- **Date:** 2026-10-03 (pre-registered; added after EXP-005, which motivated it)
+- **Objective:**
+  - EXP-005 showed O2 within 1% of the *greedy* oracle. That bounds one-step learners only.
+  - Beam search over pass sequences (widths 1, 4, 16; budget 12; best cost at any depth;
+    states deduplicated by IR hash) estimates how much any scheduler *with lookahead* could
+    gain.
+  - Beam search measures only. It is neither trained nor tuned, and it uses the test and OOD
+    programs only as measurement targets.
+- **Hypotheses:**
+  - H1: beam-1 reproduces EXP-005's oracle-greedy ratios (sanity).
+  - H2: beam-16 improves on O2 by less than 3% geomean on generated programs. Little headroom
+    would mean a learned scheduler cannot win much on this action space and cost model,
+    whatever the algorithm.
+- **Configuration:** `experiments/EXP-011-headroom/run.py --widths 1 4 16 --workers 16`, on 100
+  test programs and 17 OOD programs.
