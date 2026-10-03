@@ -60,13 +60,42 @@ Syntax and type errors are printed to stderr with source excerpts, and the exit 
 
 ## 4. Reproduce experiments
 
-Each experiment has a single command. Its run directory (`experiments/runs/<ID>_<time>/`)
-records the config, seed, environment and git commit. A curated copy of the results is
-committed in `experiments/<ID>/`.
+Each experiment is a single command. Its run directory (`experiments/runs/<ID>_<time>/`,
+git-ignored) records the config, seed, environment (including load averages), git commit and
+status. A curated copy of the results is committed in `experiments/<ID>/`. Every script accepts
+`--sanity` for a tiny run under a separate `-sanity` id, which never overwrites curated results.
+Run a sanity run first.
 
-| Experiment | Command | Approx. time (laptop) |
-|------------|---------|----------------------|
-| EXP-001 per-pass effects | `uv run python experiments/EXP-001-pass-effects/run.py --generated 200 --seed 0 --repeats 3` | ~8 min |
+**Before anything expensive:** `uv run python scripts/e2e_sanity.py` (about 30 s) exercises
+the whole pipeline once, from program to native execution to RL reward.
+
+The server times below come from the recorded runs (AMD EPYC 7513, shared machine).
+
+| Experiment | Command | Approx. time |
+|---|---|---|
+| EXP-001 per-pass effects | `uv run python experiments/EXP-001-pass-effects/run.py --generated 200 --seed 0 --repeats 3` | ~8 min (laptop) |
+| EXP-002 cost model vs native | `uv run python experiments/EXP-002-cost-model/run.py --repeats 5 --seed 0` | see EXPERIMENTS.md |
+| EXP-003 ForgeCompile vs LLVM, reproducibility | `uv run python experiments/EXP-003-fc-vs-llvm/run.py --repeats 7 --seeds 0 1` | see EXPERIMENTS.md |
+| EXP-007 dataset validation | `uv run python scripts/validate_dataset.py --n-train 80 --n-val 20 --n-test 20 --workers 8 --replay 24` | 15 min (server) |
+| EXP-004 next-pass prediction | `uv run python experiments/EXP-004-pass-prediction/run.py --workers 16` | 5 min (server; builds the cached dataset) |
+| EXP-005 ML-guided scheduling | `uv run python experiments/EXP-005-ml-scheduling/run.py --workers 16` | ~45 min (server; the oracle dominates) |
+| EXP-006 DQN | `uv run python experiments/EXP-006-rl-scheduling/run.py --episodes 3000 --seeds 0 1 2 --seed-workers 3 --workers 16` | see EXPERIMENTS.md |
+| EXP-008 native policies | `uv run python experiments/EXP-008-native-policies/run.py --repeats 10 --workers 16` | see EXPERIMENTS.md |
+| EXP-009 ML ablations | `uv run python experiments/EXP-009-ml-ablations/run.py --workers 16` | see EXPERIMENTS.md |
+| EXP-010 RL ablations | `uv run python experiments/EXP-010-rl-ablations/run.py --episodes 2000 --seeds 0 1 --workers 16` | see EXPERIMENTS.md |
+| EXP-011 headroom (beam search) | `uv run python experiments/EXP-011-headroom/run.py --widths 1 4 16 --workers 16` | see EXPERIMENTS.md |
+
+**Order matters for two of them:**
+- EXP-008 loads the DQN checkpoints that EXP-006 writes to
+  `experiments/EXP-006-rl-scheduling/checkpoints/` (committed, about 0.2 MB each).
+- The ML experiments share a dataset cache in `experiments/data/` (git-ignored). It is keyed by
+  the configuration and the git tree hash of `src/forgecompile` (D-037), so a compiler change
+  rebuilds it automatically. If you edit `benchmarks/*.mini` or `examples/*.mini` (the OOD
+  programs), delete `experiments/data/` by hand.
+
+**On a shared server** use `scripts/server/launch.sh <name> <command...>`. It runs the job in
+tmux and refuses to start on a dirty tree or low memory. Check `scripts/resources.py` first,
+and run native-timing experiments (EXP-002/003/008) alone (D-038).
 
 Optimization-correctness fuzzing (not an experiment, a test at scale):
 `uv run python scripts/fuzz_passes.py --programs 300 --sequences 3` (~2 min).
