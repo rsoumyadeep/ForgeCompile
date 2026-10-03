@@ -8,6 +8,7 @@
 # 3. Records the git commit; refuses on a dirty tree (results must map to a commit).
 # 4. Starts the command in a detached tmux session, so it survives SSH disconnects,
 #    logging continuously to ~/forge_logs/<session>.log and appending EXIT=<status>.
+# 5. Caps OpenMP/BLAS threads per process (FORGE_THREADS, default 1; FAILURES F-017).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
@@ -34,6 +35,12 @@ uv run --locked python scripts/resources.py
     echo "=== $session started $(date -u +%Y-%m-%dT%H:%M:%SZ) commit $(git rev-parse HEAD)"
     echo "=== command: $*"
 } > "$log"
+# One thread per process for OpenMP/BLAS (scikit-learn, NumPy) unless FORGE_THREADS says
+# otherwise: experiments parallelize with processes, and per-process thread pools on top of
+# that oversubscribed the shared server (FAILURES F-017).
+threads="${FORGE_THREADS:-1}"
+caps="OMP_NUM_THREADS=$threads OPENBLAS_NUM_THREADS=$threads MKL_NUM_THREADS=$threads"
+echo "=== thread caps: $caps" >> "$log"
 quoted=$(printf '%q ' "$@")
-tmux new-session -d -s "$session" "cd '$PWD' && $quoted >> '$log' 2>&1; echo EXIT=\$? >> '$log'"
+tmux new-session -d -s "$session" "cd '$PWD' && env $caps $quoted >> '$log' 2>&1; echo EXIT=\$? >> '$log'"
 echo "started tmux session '$session'; log: $log"

@@ -37,14 +37,17 @@ from forgecompile.ml.dataset import LABELS, STOP, StateRecord
 from forgecompile.ml.features import FEATURE_GROUPS, FEATURE_NAMES
 
 
-def make_models(seed: int) -> dict[str, Any]:
+def make_models(seed: int, n_jobs: int = 1) -> dict[str, Any]:
+    """Fresh, unfitted candidates. ``n_jobs=1`` by default: experiments already run many
+    processes in parallel, and per-model thread pools on top of them oversubscribed a shared
+    server (FAILURES F-017). Fitted models do not depend on ``n_jobs``."""
     return {
         "majority": DummyClassifier(strategy="most_frequent"),
         "decision_tree": DecisionTreeClassifier(
             max_depth=10, min_samples_leaf=2, random_state=seed
         ),
         "random_forest": RandomForestClassifier(
-            n_estimators=200, min_samples_leaf=2, random_state=seed, n_jobs=-1
+            n_estimators=200, min_samples_leaf=2, random_state=seed, n_jobs=n_jobs
         ),
         "gradient_boosting": HistGradientBoostingClassifier(max_iter=200, random_state=seed),
         "mlp": make_pipeline(

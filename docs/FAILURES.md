@@ -354,3 +354,31 @@ Template:
     it *after every transformation*, not just after lowering.
   - Exceptions crossing process boundaries must be picklable, or debugging information is lost
     exactly when it is needed.
+
+## F-017 — Thread oversubscription on the shared server (EXP-009 sanity run killed)
+
+- **Date / Phase:** 2026-10-03, Phase 10
+- **What happened:**
+  - The EXP-009 sanity run started 16 worker processes, as the resource policy allowed (D-038).
+  - After about 17 minutes the server's load average was **~295** on 64 hardware threads.
+    Each of my processes was at 370–530% CPU, and another user's jobs shared the machine.
+  - I killed my own job, and only my processes. The load fell immediately. The run is
+    preserved and marked `aborted` with this cause. No result from it is used.
+- **Root cause:**
+  - The resource policy budgets *processes*. Inside each process, scikit-learn started its own
+    full-width thread pools:
+    - `RandomForestClassifier(n_jobs=-1)`, via joblib;
+    - `HistGradientBoostingClassifier`, via OpenMP;
+    - probably NumPy's BLAS too.
+  - 16 processes × ~64 threads is about 1,000 runnable threads.
+  - Earlier single-process runs (EXP-004/005) had the same per-process behaviour. It went
+    unnoticed because a single process cannot multiply it.
+- **Fix:**
+  1. `make_models(..., n_jobs=1)` by default. Fitted models do not depend on `n_jobs`.
+  2. `scripts/server/launch.sh` exports `OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS` and
+     `MKL_NUM_THREADS` = `FORGE_THREADS` (default 1) to every job. Parallelism comes from
+     processes only, so total threads ≈ the declared worker count.
+  3. The launcher logs the caps. After relaunching I check the load while the job runs.
+- **Lesson:** "workers" is not a CPU budget when libraries parallelize internally. On a
+  shared machine, cap *threads* explicitly, then verify the actual load instead of trusting
+  the plan.
