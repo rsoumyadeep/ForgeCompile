@@ -19,12 +19,12 @@ misconceptions.
 | 9 | Data-flow analysis | 4 | ✅ below |
 | 10 | Classical optimizations | 4 | ✅ below |
 | 11 | LLVM | 5 | ✅ below |
-| 12 | Benchmarking | 6 | ⏳ |
-| 13 | ML for compiler optimization | 7 | ⏳ |
-| 14 | RL formulation | 8 | ⏳ |
-| 15 | RL implementation | 9 | ⏳ |
-| 16 | Experimental methodology | 10 | ⏳ |
-| 17 | Failure analysis | all | ⏳ (read [FAILURES.md](FAILURES.md)) |
+| 12 | Benchmarking | 6 | ✅ below |
+| 13 | ML for compiler optimization | 7 | ✅ below |
+| 14 | RL formulation | 8 | ✅ below |
+| 15 | RL implementation | 9 | ✅ below |
+| 16 | Experimental methodology | 10 | ✅ below |
+| 17 | Failure analysis | all | ✅ below + [FAILURES.md](FAILURES.md) |
 | 18 | Interview questions | 11 | ⏳ |
 
 Suggested order: read [ARCHITECTURE.md](ARCHITECTURE.md), then this guide topic by topic, with
@@ -428,3 +428,164 @@ See [THEORY §12](THEORY.md#12-measuring-performance) and
   is what interleaving is for.
 - "The minimum is always the right statistic." It estimates intrinsic cost but hides real
   variability, which is why both the minimum and the median are reported.
+
+## 13. ML for compiler optimization
+
+**What you need to know.**
+- The phase-ordering problem and its four interactions: enabling, disabling, redundancy, harm.
+- How a pass-selection classifier is set up: state → features → next pass or stop.
+- How labels are produced by running the compiler (an offline oracle), and why that makes the
+  model imitate the *greedy* oracle.
+- Why regret, not accuracy, is the primary metric.
+- How leakage is prevented: split by program, disjoint seeds, OOD set.
+
+See [THEORY §13–14](THEORY.md#13-why-pass-ordering-is-hard-the-phase-ordering-problem) and
+[ML_GUIDED_OPTIMIZATION.md](ML_GUIDED_OPTIMIZATION.md).
+
+**Where in the code.**
+- `ml/features.py`: `FEATURE_GROUPS`, 61 features; `extract_features`.
+- `ml/dataset.py`: `trajectory`, `StateRecord.label`, `CostEvaluator`.
+- `ml/data_pipeline.py`: `program_splits`, `build_dataset`, cache key (D-037).
+- `ml/models.py`: `make_models`, `score`, `select_model`.
+- `ml/policies.py`: `ModelPolicy` (never retries a pass in an unchanged state), `OraclePolicy`.
+- `scripts/validate_dataset.py`: the checks run before any training (EXP-007).
+
+**Key equations.**
+- label(s) = argmin_a C(a(s)) if it improves C(s), else stop.
+- gain(a, s) = (C(s) − C(a(s))) / C(s).
+- regret(s) = max(0, max_a gain(a, s)) − gain(â, s).
+- End-to-end metric: geomean over programs of C(final)/C(initial).
+
+**Example.** On the `LOOPY` test program (`tests/ml/test_ml.py`), the oracle's first label is a
+folding pass. After `copyprop` the opportunity detector `n_copies` drops to 0, and `bce`
+becomes the best next pass. The features reflect the state change that the model must learn.
+
+**Likely interview questions**
+- *Where do your labels come from?* From compiling and executing every one-step alternative.
+  Nothing is hand-labelled or synthetic, and EXP-007 replays the labels from scratch to prove
+  they are reproducible.
+- *How do you know you are not leaking?* The split is by program with disjoint generator seeds.
+  Names and source text are checked to be disjoint, and a separate hand-written OOD set exists.
+- *Why not accuracy?* Ties: `constfold` and `sccp` often give identical gains, so accuracy
+  punishes harmless choices. Regret measures what a decision actually costs.
+- *Is the model just reading your hand-made opportunity features?* Answer with the EXP-009
+  feature ablation numbers.
+- *Does better prediction mean faster code?* Not necessarily. That is why EXP-005 evaluates
+  end to end and EXP-008 measures native time.
+
+**Common misconceptions.**
+- "ML replaces the optimizer." The passes and their correctness arguments are unchanged. The
+  model only chooses *which* pass to run *when*.
+- "A learned policy can produce wrong code." It can only choose among semantics-preserving
+  passes. Wrong code would be a pass bug, and the evaluation checks every output anyway
+  (`WrongCodeError`).
+
+## 14. RL formulation
+
+**What you need to know.**
+- The MDP tuple and each component in ForgeCompile: state (M, t), 12 actions, deterministic
+  transitions, reward, γ = 1, horizon 12.
+- The observation vector: 61 features + remaining-step fraction + one-hot of the previous
+  action = 74 numbers.
+- Why the reward telescopes, and why that makes it hard to exploit.
+- Why the step penalty λ exists (compile-time proxy; prevents padding).
+- Why this is strictly a POMDP.
+
+See [RL_FORMULATION.md](RL_FORMULATION.md) and [THEORY §15](THEORY.md#15-pass-scheduling-as-an-mdp).
+
+**Where in the code.** `rl/env.py` (`PassSchedulingEnv.reset/step`, `RewardConfig`);
+`tests/rl/test_rl.py` (telescoping, stop/horizon, invalid-transformation penalty, restricted
+action space).
+
+**Key equations.**
+- rₜ = w_c (C(Mₜ) − C(Mₜ₊₁))/C(M₀) + w_s (S(Mₜ) − S(Mₜ₊₁))/S(M₀) − λ.
+- Σₜ rₜ = w_c (C(M₀) − C(M_K))/C(M₀) + w_s (S(M₀) − S(M_K))/S(M₀) − λK.
+
+**Likely interview questions**
+- *What is the state, action and reward?* Quote the table and the telescoping identity.
+- *Could the agent hack the reward?* Not by cycling (telescoping), not by padding (λ), and not
+  by deleting behaviour (outputs are checked and invalid transformations are penalized). It
+  *can* exploit errors in the cost model itself, which is why EXP-002 and EXP-008 exist.
+- *Why γ = 1?* The objective is final program quality over a bounded horizon. Discounting
+  would bias the agent toward greedy behaviour, and EXP-010 ablates it.
+- *Why put the step counter in the observation?* With a hard horizon, the optimal action
+  depends on the remaining budget. Without it the problem is not Markov in time.
+
+**Common misconceptions.**
+- "RL is needed because the problem is sequential." Sequential problems can still be solved
+  greedily. RL only helps if delayed effects matter, and that is measured, not assumed.
+- "Truncation at T should bootstrap." Here T − t is observed, so t = T is a genuine terminal
+  state.
+
+## 15. RL implementation
+
+**What you need to know.**
+- Q-learning and the Bellman optimality equation; the TD target.
+- DQN's two stabilizers (replay buffer, target network); why Double DQN; Huber loss.
+- ε-greedy exploration with linear decay; warm-up with random actions, which also fits the
+  fixed observation normalizer.
+- Checkpoint selection on validation programs; several seeds, all reported.
+
+See [THEORY §16](THEORY.md#16-from-q-learning-to-double-dqn).
+
+**Where in the code.**
+- `rl/dqn.py`: `MLP.forward/backward`, `Adam`, `Normalizer`, `DQNAgent.learn`, `train`,
+  `DQNPolicy`.
+- `rl/training.py`: `run_training_job`, one seed or condition per process.
+- Tests: numerical gradient check, Adam on a linear target, DQN on a toy bandit,
+  save/load round trip.
+
+**Key equations.**
+- y = r + γ (1 − done) Q(s′, argmax_a′ Q(s′, a′; θ); θ⁻).
+- Huber: L(δ) = ½δ² if |δ| ≤ 1, otherwise |δ| − ½.
+- ε(step) decays linearly from 1.0 to 0.05 over 6,000 steps after warm-up.
+
+**Likely interview questions**
+- *Why a replay buffer?* It breaks sample correlation and reuses expensive transitions.
+- *Why a target network?* It gives a stable regression target.
+- *Why Double DQN?* The max operator overestimates under noise.
+- *Why NumPy and no PyTorch?* The network is tiny (74 → 128 → 128 → 12), the backward pass is
+  checked against numerical gradients, and it removes a heavy dependency (D-007). GPUs would
+  not help: the bottleneck is the environment (compiling and interpreting), not the network.
+- *How did you pick the checkpoint?* Best validation geomean. Test programs are never used.
+
+**Common misconceptions.**
+- "Training reward going up means a better compiler." Training programs are not test
+  programs, and ε-greedy returns understate the greedy policy. Only the held-out evaluation
+  counts.
+
+## 16. Experimental methodology
+
+**What you need to know.**
+- Each baseline and the question it answers (random, O2, frequency, majority, greedy oracle).
+- Validation vs test vs OOD, and pre-registered hypotheses.
+- Proxy (interpreter cost) vs target (native time); the cost of a decision vs its benefit.
+- Seeds, noise bands, geometric means.
+- Ablations: one factor changed at a time (EXP-009, EXP-010).
+
+See [THEORY §17](THEORY.md#17-experimental-methodology-for-learned-compiler-heuristics) and
+[EXPERIMENTS.md](EXPERIMENTS.md).
+
+**Where in the code.** `ml/evaluate.py` (output-checked end-to-end evaluation), every
+`experiments/EXP-*/run.py`, `utils/experiment.py` (run metadata: commit, environment, seed,
+status).
+
+**Likely interview questions**
+- *What would convince you the learned policy is better?* A lower held-out geomean than O2
+  and the other baselines, consistent across seeds and outside the noise band, *and* on native
+  time, with a decision overhead smaller than the benefit.
+- *What if RL loses to the supervised model?* Report it, then explain it, e.g. greedy is
+  near-optimal in this action space.
+- *How do you know the result generalizes?* Test on unseen generated programs and on the
+  hand-written OOD set, and measure the distribution-shift ablation (EXP-009).
+
+## 17. Failure analysis
+
+Read [FAILURES.md](FAILURES.md) in order. For each entry, be ready to say what failed, how it
+was noticed, the root cause, the fix, and the lesson. Three that come up often in interviews:
+- **F-010** (SCCP missed optimizations): found by an experiment, not by a test. Experiments
+  are also tests.
+- **F-014** (misattributed "startup" time): a measurement artefact turned out to be the
+  first-run cost of a fresh executable. Always ask "compared with what?".
+- **F-015** (laptop run killed under memory pressure): it produced the resource policy
+  (D-034) and failed/aborted run markers (D-035).
