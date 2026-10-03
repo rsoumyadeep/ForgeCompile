@@ -607,6 +607,70 @@ These are tiny-data results and are **not evidence** for any hypothesis.
   - H4: in no condition does the model policy beat O2 end to end on generated programs
     (follows from EXP-005).
 - **Configuration:** `experiments/EXP-009-ml-ablations/run.py --workers 16`.
+- **Runs:**
+  - The first sanity run was **aborted** (F-017, thread oversubscription). It is preserved and
+    is not evidence.
+  - A second sanity run (20/5/5 programs) completed.
+  - Full run: commit `e37527c`, server, 16 single-threaded workers, 9.5 min. Curated results
+    are in `experiments/EXP-009-ml-ablations/`.
+- **Results** (test = generated `loop_heavy` test programs unless stated; regret = mean one-step
+  regret; e2e = geomean final/initial cost of the greedy model policy):
+
+  | condition | selected | val regret | test regret | test e2e | OOD regret | OOD e2e |
+  |---|---|---:|---:|---:|---:|---:|
+  | all features | GBDT | 0.0148 | 0.0152 | 0.580 | 0.0277 | 0.836 |
+  | − size | RF | 0.0143 | 0.0127 | 0.589 | 0.0240 | 0.904 |
+  | − opcodes | RF | 0.0145 | 0.0133 | 0.586 | 0.0236 | 0.881 |
+  | − cfg | RF | 0.0148 | 0.0131 | 0.585 | 0.0208 | 0.892 |
+  | − loops | RF | 0.0137 | 0.0127 | 0.589 | 0.0238 | 0.894 |
+  | − memory | RF | 0.0152 | 0.0144 | 0.587 | 0.0235 | 0.897 |
+  | − calls | GBDT | 0.0144 | 0.0145 | 0.576 | 0.0279 | 0.836 |
+  | − opportunities | RF | **0.0163** | 0.0140 | 0.592 | 0.0214 | 0.899 |
+  | only opportunities | RF | 0.0165 | 0.0170 | 0.594 | 0.0355 | 0.911 |
+  | 25 programs (188 states) | RF | 0.0173 | 0.0149 | 0.587 | 0.0213 | 0.894 |
+  | 50 (373) | RF | 0.0188 | 0.0159 | 0.586 | 0.0209 | 0.906 |
+  | 100 (740) | GBDT | 0.0195 | 0.0173 | 0.572 | 0.0258 | 0.832 |
+  | 200 (1,470) | GBDT | 0.0147 | 0.0182 | 0.576 | 0.0262 | 0.848 |
+  | 400 (2,966) | GBDT | 0.0148 | 0.0152 | 0.580 | 0.0277 | 0.836 |
+  | *reference: O2* | — | — | — | **0.558** | — | **0.776** |
+  | *reference: greedy oracle* | — | — | — | 0.553 | — | 0.775 |
+
+  Distribution shift: rows are the training profile, columns the test programs.
+
+  | trained on | test `loop_heavy`: regret / e2e | test `default`: regret / e2e |
+  |---|---:|---:|
+  | `loop_heavy` | 0.0152 / 0.580 | **0.0097** / 0.513 |
+  | `default` | 0.0158 / 0.616 | 0.0117 / 0.519 |
+  | *O2 / oracle* | 0.558 / 0.553 | 0.505 / 0.495 |
+
+- **Hypotheses.**
+  - **H1 partly supported.**
+    - On validation, the decision metric, removing `opportunities` hurts most (0.0163 vs 0.0148).
+      On test the ordering is within noise: several single-group removals score slightly better
+      than "all", mostly because the selected model switches from GBDT to RF.
+    - `only:opportunities` recovers **96%** of the all-features regret reduction over the
+      majority baseline: (0.0670 − 0.0170) / (0.0670 − 0.0152).
+    - The feature groups are highly redundant. The hand-made detectors carry nearly all the
+      signal, and the generic counts carry nearly all of it too.
+  - **H2 rejected: the learning curve is flat.** 25 programs (188 states) give test regret
+    0.0149, against 0.0152 with 400 programs. Neither regret nor end-to-end quality improves
+    monotonically with data. One-step pass choice saturates with very little data, and
+    model-selection variance (RF vs GBDT) is larger than the data effect.
+  - **H3 partly supported (asymmetric transfer).**
+    - Training on `default` and testing on `loop_heavy` raises regret slightly (0.0158 vs
+      0.0152) and end-to-end cost by 6% (0.616 vs 0.580).
+    - The reverse transfers *better* than in-distribution training: the `loop_heavy` model
+      scores 0.0097 on `default` programs, against 0.0117 for the `default`-trained model.
+    - Training on the richer distribution generalizes to the simpler one, but not vice versa.
+  - **H4 supported:** no condition beats O2 end to end. The best is 0.572 vs 0.558 on
+    `loop_heavy` and 0.513 vs 0.505 on `default`. On OOD every condition is 7–17% worse than O2.
+- **Interpretation:**
+  - The supervised scheduler's quality is limited by neither features nor data quantity. Any
+    reasonable feature subset and about 200 states already reach the plateau.
+  - The binding constraints are the tiny headroom above O2 (EXP-011) and compounding greedy
+    errors (EXP-005).
+  - Workload *coverage* matters more than workload *quantity*: compare the asymmetric transfer
+    and the missing `bce` labels (EXP-004).
 
 ## EXP-010 — Ablations of the RL formulation (reward, discount, action space)
 

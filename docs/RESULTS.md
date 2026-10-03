@@ -148,3 +148,15 @@ Then 3 seeds × 12,000 episodes, selected on validation with that rule (Part B).
   - the best validation checkpoints came from episodes 100, 1,800 and 1,800 of 12,000;
   - scaled agents are no better than the EXP-006 agents.
 - No DQN variant beats O2. There were 0 invalid transformations in about 350k training steps.
+
+## EXP-009 — Supervised-scheduler ablations: features, data, distribution (Phase 10)
+
+**Setup:** EXP-004 protocol per condition (selection on validation), plus end-to-end greedy
+scheduling; 17 conditions; commit `e37527c`. Data: `experiments/EXP-009-ml-ablations/`.
+
+| question | finding |
+|---|---|
+| Which features matter? | They are highly redundant. Dropping any one group barely moves test regret (0.0127–0.0152). The hand-made `opportunities` group *alone* recovers 96% of the regret reduction over majority. On validation, dropping it hurts most. |
+| How much data? | **Flat learning curve.** 25 programs (188 states) give regret 0.0149 vs 0.0152 with 400 programs; there is no monotonic trend. |
+| Distribution shift? | **Asymmetric.** `loop_heavy` → `default` transfers well (regret 0.0097, better than the in-distribution `default` model's 0.0117). `default` → `loop_heavy` costs 6% end to end (0.616 vs 0.580). |
+| Beats O2 anywhere? | **No.** Best end-to-end 0.572 vs O2 0.558 (`loop_heavy`) and 0.513 vs 0.505 (`default`). OOD: 7–17% worse than O2. |
