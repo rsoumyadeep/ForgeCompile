@@ -191,7 +191,7 @@ executable; warm startup is about 5 ms (F-014). The correction is kept visible.
 
 **🛠 Is the interpreter cost a good proxy for native time?**
 Only weakly: pooled Spearman 0.29 across 120 (kernel, pipeline) points (EXP-002). It works
-better on memory- and call-heavy kernels (0.5–0.65) and fails on latency-bound arithmetic
+better on the memory, vector, stencil and helper-call kernels (Spearman 0.49–0.65). It fails on latency-bound arithmetic
 (`arith_hash`: O2 cuts 6% of the cost but runs 9% slower) and on `loop_nest` (predicted −64%,
 measured ≈ 0%). At LLVM -O0 every value lives in a stack slot, so removing cheap register work
 saves little. I kept the proxy because it is exact and cheap, and I re-measured the final
