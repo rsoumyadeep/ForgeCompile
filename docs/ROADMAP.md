@@ -16,8 +16,8 @@ Status legend: ✅ done · 🔨 in progress · ⏳ not started · ⚠️ done wi
 | 5 | LLVM backend + native executables | ✅ | [PHASE_5](phases/PHASE_5.md) |
 | 6 | Benchmarking infrastructure | 🔨 code done; EXP-002/003 pending on the server | — |
 | 7 | ML-based pass selection | ⚠️ done; negative end-to-end result | [PHASE_7](phases/PHASE_7.md) |
-| 8 | RL environment | 🔨 implemented and tested; validated by EXP-006 | — |
-| 9 | RL optimization agent | 🔨 EXP-006 running | — |
+| 8 | RL environment | ✅ | [PHASE_8](phases/PHASE_8.md) |
+| 9 | RL optimization agent | 🔨 EXP-006 done (negative); EXP-012 follow-up pending | — |
 | 10 | Experimental study + ablations | ⏳ | — |
 | 11 | Final hardening + audit | ⏳ | — |
 
