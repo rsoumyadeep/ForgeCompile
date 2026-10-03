@@ -79,11 +79,12 @@ The server times below come from the recorded runs (AMD EPYC 7513, shared machin
 | EXP-007 dataset validation | `uv run python scripts/validate_dataset.py --n-train 80 --n-val 20 --n-test 20 --workers 8 --replay 24` | 15 min (server) |
 | EXP-004 next-pass prediction | `uv run python experiments/EXP-004-pass-prediction/run.py --workers 16` | 5 min (server; builds the cached dataset) |
 | EXP-005 ML-guided scheduling | `uv run python experiments/EXP-005-ml-scheduling/run.py --workers 16` | 12 min (server; the greedy oracle dominates) |
-| EXP-006 DQN | `uv run python experiments/EXP-006-rl-scheduling/run.py --episodes 3000 --seeds 0 1 2 --seed-workers 3 --workers 16` | see EXPERIMENTS.md |
+| EXP-006 DQN | `uv run python experiments/EXP-006-rl-scheduling/run.py --episodes 3000 --seeds 0 1 2 --seed-workers 3 --workers 16` | ~36 min (server: 24 min training per seed in parallel + evaluation) |
 | EXP-008 native policies | `uv run python experiments/EXP-008-native-policies/run.py --repeats 10 --workers 16` | see EXPERIMENTS.md |
-| EXP-009 ML ablations | `uv run python experiments/EXP-009-ml-ablations/run.py --workers 16` | see EXPERIMENTS.md |
-| EXP-010 RL ablations | `uv run python experiments/EXP-010-rl-ablations/run.py --episodes 2000 --seeds 0 1 --workers 16` | see EXPERIMENTS.md |
-| EXP-011 headroom (beam search) | `uv run python experiments/EXP-011-headroom/run.py --widths 1 4 16 --workers 16` | see EXPERIMENTS.md |
+| EXP-009 ML ablations | `uv run python experiments/EXP-009-ml-ablations/run.py --workers 16` | 10 min (server, datasets cached) |
+| EXP-010 RL ablations | `uv run python experiments/EXP-010-rl-ablations/run.py --episodes 2000 --seeds 0 1 --workers 16` | 19 min (server) |
+| EXP-011 headroom (beam search) | `uv run python experiments/EXP-011-headroom/run.py --widths 1 4 16 --workers 16` | 9 min (server) |
+| EXP-012 DQN follow-up | `uv run python experiments/EXP-012-dqn-followup/run.py --part both --workers 3` | 70 min (server) |
 
 **Order matters for two of them:**
 - EXP-008 loads the DQN checkpoints that EXP-006 writes to
@@ -92,6 +93,9 @@ The server times below come from the recorded runs (AMD EPYC 7513, shared machin
   the configuration and the git tree hash of `src/forgecompile` (D-037), so a compiler change
   rebuilds it automatically. If you edit `benchmarks/*.mini` or `examples/*.mini` (the OOD
   programs), delete `experiments/data/` by hand.
+
+**Always set thread caps** when running outside `launch.sh`: `OMP_NUM_THREADS=1
+OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1` (F-017). Parallelism comes from worker processes.
 
 **On a shared server** use `scripts/server/launch.sh <name> <command...>`. It runs the job in
 tmux and refuses to start on a dirty tree or low memory. Check `scripts/resources.py` first,
