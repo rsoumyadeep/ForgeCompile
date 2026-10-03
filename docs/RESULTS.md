@@ -143,7 +143,7 @@ Then 3 seeds × 12,000 episodes, selected on validation with that rule (Part B).
 | EXP-006 DQN (seeds 0/1/2) | 0.632 / 0.660 / 0.641 | 0.609 / 0.625 / **0.589** |
 | scaled DQN, 4× training (seeds 0/1/2) | 0.650 / 0.679 / 0.681 | 0.604 / 0.632 / 0.631 |
 
-- The no-retry rule closes about a third of DQN's gap to O2.
+- The no-retry rule closes 31%, 34% and 63% of DQN's gap to O2 (seeds 0, 1, 2).
 - **4× more training does not help:**
   - the best validation checkpoints came from episodes 100, 1,800 and 1,800 of 12,000;
   - scaled agents are no better than the EXP-006 agents.

@@ -577,7 +577,7 @@ These are tiny-data results and are **not evidence** for any hypothesis.
       than the EXP-006 agents (0.609 / 0.625 / 0.589) on generated test programs.
   - **H4 supported:** no scaled agent beats O2.
 - **Interpretation:**
-  - About a third of EXP-006's gap to O2 was the missing no-retry rule, an inference-time
+  - 31–63% of EXP-006's gap to O2 (depending on the seed) was the missing no-retry rule, an inference-time
     wrapper rather than learning.
   - The remaining gap does not shrink with more data. The selected checkpoints are close to
     untrained networks, so the learned Q-values add little beyond "try passes in some order,
