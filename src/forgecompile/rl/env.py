@@ -7,7 +7,8 @@ MDP (full derivation in docs/RL_FORMULATION.md):
   features (``ml/features.py``), the remaining-step fraction, and the previous
   action. The features are a lossy summary of ``M_t``, so strictly this is a
   POMDP. The step counter makes the finite-horizon problem Markov in time.
-* **Actions** ``A``: the 11 passes plus ``stop``.
+* **Actions** ``A``: the 11 passes plus ``stop`` (or a subset of the passes plus
+  ``stop``, for the action-space ablation).
 * **Transition** ``P``: deterministic, ``M_{t+1} = pass_a(M_t)``. ``stop`` ends the
   episode. The only randomness is the initial program, drawn from the
   training set at ``reset``.
@@ -35,6 +36,7 @@ from __future__ import annotations
 
 import hashlib
 import random
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -91,16 +93,22 @@ class PassSchedulingEnv:
         evaluator: CostEvaluator | None = None,
         check_output: bool = True,
         seed: int = 0,
+        actions: Sequence[str] | None = None,
     ) -> None:
         if not programs:
             raise ValueError("the environment needs at least one program")
+        unknown = set(actions or ()) - set(ACTIONS)
+        if unknown:
+            raise ValueError(f"unknown passes in the action space: {sorted(unknown)}")
         self.programs = programs
         self.horizon = horizon
         self.reward_config = reward or RewardConfig()
         self.evaluator = evaluator or CostEvaluator("cost")
         self.check_output = check_output
         self.rng = random.Random(seed)
-        self.n_actions = len(ENV_ACTIONS)
+        self.actions: list[str] = [*(actions or ACTIONS), STOP]
+        self.stop_index = len(self.actions) - 1
+        self.n_actions = len(self.actions)
         self.obs_size = len(FEATURE_NAMES) + 1 + self.n_actions
         self.invalid_transformations = 0
         self._base_modules: dict[str, tuple[Module, tuple[str, int]]] = {}
@@ -152,7 +160,7 @@ class PassSchedulingEnv:
     def step(self, action: int) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
         if self._module is None:
             raise RuntimeError("call reset() before step()")
-        name = ENV_ACTIONS[action]
+        name = self.actions[action]
         if name == STOP:
             self._last_action = action
             return self._observe(), 0.0, True, False, {"stop": True}

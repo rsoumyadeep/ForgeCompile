@@ -117,6 +117,7 @@ class OraclePolicy:
 
     evaluator: CostEvaluator
     name: str = "oracle-greedy"
+    actions: Sequence[str] = tuple(ACTIONS)  # a subset, for the action-space ablation
 
     def reset(self) -> None:
         pass
@@ -124,7 +125,7 @@ class OraclePolicy:
     def choose(self, module: Module) -> str:
         base = self.evaluator(module)
         best, best_cost = STOP, base
-        for action in ACTIONS:
+        for action in self.actions:
             cost = self.evaluator(apply_pass(module, action))
             if cost < best_cost - 1e-12 * max(base, 1.0):
                 best, best_cost = action, cost

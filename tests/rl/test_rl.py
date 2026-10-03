@@ -173,3 +173,31 @@ def test_training_shorter_than_warmup_still_yields_a_usable_agent(tmp_path: Path
     train(env, agent, episodes=5)  # type: ignore[arg-type]
     agent.save(tmp_path / "short.npz")
     assert np.isfinite(agent.q_values(np.ones(4))).all()
+
+
+def test_restricted_action_space() -> None:
+    env = make_env(actions=["copyprop", "dce"])
+    assert env.actions == ["copyprop", "dce", "stop"] and env.n_actions == 3
+    obs, _ = env.reset()
+    assert obs.shape == (len(env_module.FEATURE_NAMES) + 1 + 3,)
+    env.step(env.actions.index("dce"))
+    assert env.stats.passes == ["dce"]
+    _, _, terminated, _, _ = env.step(env.stop_index)
+    assert terminated
+    with pytest.raises(ValueError, match="unknown passes"):
+        make_env(actions=["no-such-pass"])
+
+
+def test_dqn_policy_and_oracle_respect_the_action_space() -> None:
+    from forgecompile.driver import build_ir
+    from forgecompile.ml.dataset import CostEvaluator
+    from forgecompile.ml.policies import OraclePolicy, schedule
+
+    actions = ["copyprop", "dce"]
+    env = make_env(actions=actions)
+    agent = DQNAgent(env.obs_size, env.n_actions, DQNConfig(warmup_steps=10))
+    train(env, agent, episodes=3)  # type: ignore[arg-type]
+    policy = DQNPolicy(agent, actions=env.actions)
+    assert set(schedule(policy, build_ir(LOOPY), max_steps=6).actions) <= set(actions)
+    oracle = OraclePolicy(CostEvaluator(), actions=actions)
+    assert set(schedule(oracle, build_ir(LOOPY), max_steps=6).actions) <= set(actions)

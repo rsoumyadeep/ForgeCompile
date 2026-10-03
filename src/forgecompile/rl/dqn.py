@@ -283,6 +283,7 @@ class DQNPolicy:
     agent: DQNAgent
     horizon: int = 12
     name: str = "dqn"
+    actions: list[str] = field(default_factory=lambda: list(ENV_ACTIONS))  # as in the env
     _t: int = 0
     _last: int | None = None
 
@@ -290,7 +291,7 @@ class DQNPolicy:
         self._t, self._last = 0, None
 
     def choose(self, module: Module) -> str:
-        last = np.zeros(len(ENV_ACTIONS))
+        last = np.zeros(len(self.actions))
         if self._last is not None:
             last[self._last] = 1.0
         remaining = (self.horizon - self._t) / self.horizon
@@ -298,4 +299,4 @@ class DQNPolicy:
         action = int(np.argmax(self.agent.q_values(obs)))
         self._t += 1
         self._last = action
-        return ENV_ACTIONS[action]
+        return self.actions[action]
