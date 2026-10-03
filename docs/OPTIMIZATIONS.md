@@ -262,6 +262,11 @@ Every pass relies on the effect classes in [IR.md §3](IR.md#3-instruction-set):
 - **Honest caveat.** On x86, `imul` costs about 3 cycles, and LLVM's own loop strength
   reduction runs on the generated code anyway, so a native gain is expected to be small.
   EXP-001 measures a ~0.5% cost reduction on the examples, under the interpreter cost model.
+- **Measured natively (EXP-002, EXP-008): worse than expected.** At LLVM -O0, strength
+  reduction is a net *slowdown*: geomean +0.8%, worst +19%. The new induction variable is one
+  more loop-carried value, which -O0 keeps in a stack slot, and that costs more than the
+  multiply it replaces. It is the clearest case where the interpreter cost model gets the sign
+  wrong.
 
 ### bce — bounds-check elimination
 
@@ -319,6 +324,28 @@ Every pass relies on the effect classes in [IR.md §3](IR.md#3-instruction-set):
 
 These are not design accidents to be hidden. They are exactly why pass *ordering* is a
 non-trivial decision problem (THEORY §13, ML_GUIDED_OPTIMIZATION.md).
+
+## 4b. Native effects (measured, EXP-002/003/008)
+
+EXP-001's numbers are interpreter costs. Native measurements at LLVM -O0 (10 kernels, Phase 6
+protocol, noise band about 3%) tell a different story for several passes:
+
+| pass / pipeline | interpreter cost (geomean ratio) | native time at LLVM -O0 (geomean ratio) |
+|---|---:|---:|
+| O2 | 0.741 | **0.850** (1.18× speedup; up to 1.50× on matmul; reproducibly 1.09 on arith_hash) |
+| O1 | 0.925 | 0.882 |
+| simplifycfg | 0.985 | **0.913** (branch and jump removal is worth more natively) |
+| bce | 0.906 | 0.960 |
+| licm | 0.871 | 1.004 (no native gain) |
+| cse | 0.948 | 1.007 |
+| strength | 0.942 | 1.008 (worst 1.190) |
+
+- **Why:** at -O0, LLVM keeps every SSA value in a stack slot. Removing or hoisting cheap
+  register arithmetic saves little, while extra loop-carried values add memory traffic.
+  Latency-bound loops (a chain of divisions in `arith_hash`) do not speed up when instructions
+  off the critical path disappear.
+- **With LLVM -O2:** ForgeCompile O2 adds no run-time benefit (geomean 1.016, within noise),
+  but the final code is **8.9% smaller** (EXP-003).
 
 ## 5. Not implemented (deliberately)
 
