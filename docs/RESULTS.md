@@ -222,3 +222,25 @@ gate; server; commit `7ff2e07`. A new run replaces the aborted laptop attempt (F
   reproducibly −8% on the latency-bound arith_hash.
 - LLVM -O2 subsumes it for run time (ratio 1.016, within noise). ForgeCompile O2 still makes
   the final code **8.9% smaller** after LLVM -O2.
+
+## EXP-008 — Learned schedules measured natively (Phase 10)
+
+**Setup:** every policy schedules each of the 10 kernels (small instance), and the large
+instance is compiled with that exact pass list at LLVM -O0 and timed with the Phase 6 protocol
+(10 repeats). Commit `7ff2e07`. Data: `experiments/EXP-008-native-policies/`.
+
+| policy | native time vs fc-O0 (geomean) | `.text` size | decision ms |
+|---|---:|---:|---:|
+| frequency order | 0.837 | 0.929 | 0 |
+| **O2** | **0.850** | **0.870** | 0 |
+| supervised model | 0.855 | 0.969 | 93 |
+| greedy oracle (best on the proxy) | 0.861 | 1.019 | 12,447 |
+| best DQN (EXP-012 + no-retry) | 0.945 | 0.912 | 8 |
+| *LLVM -O2 alone (reference)* | *0.137* | *0.604* | — |
+
+- **Natively, no learned scheduler beats O2 beyond the ~3% noise band.** O2 also produces the
+  smallest code.
+- The proxy's blind spot: strength reduction looks good on the interpreter but slows LLVM -O0
+  code. Policies that rarely use it (model, DQN) are 32% faster than O2 on `loop_nest` while
+  worse on the proxy. This is an accident of a misaligned objective, not learned insight.
+- Decision time alone (3 ms to 12 s) exceeds O2's entire pass time on these kernels (2.3 ms).

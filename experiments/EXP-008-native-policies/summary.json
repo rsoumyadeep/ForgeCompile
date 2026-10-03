@@ -1,0 +1,101 @@
+{
+  "006:dqn_seed0": {
+    "geomean_interp_cost_ratio": 0.8938222293567506,
+    "geomean_native_ratio": 0.9883557861658699,
+    "geomean_size_ratio": 0.9934262583700503,
+    "mean_decision_ms": 3.4393104433547705,
+    "mean_pass_ms": 1.3129000000000002,
+    "mean_passes": 6.1,
+    "worst_native_ratio": 1.0045575820800114
+  },
+  "006:dqn_seed0+noretry": {
+    "geomean_interp_cost_ratio": 0.8840391997318073,
+    "geomean_native_ratio": 0.9522821220497488,
+    "geomean_size_ratio": 0.975061153693457,
+    "mean_decision_ms": 3.853428375441581,
+    "mean_pass_ms": 1.1351999999999998,
+    "mean_passes": 6.0,
+    "worst_native_ratio": 1.0274061690182876
+  },
+  "012:dqn_scaled_seed0": {
+    "geomean_interp_cost_ratio": 0.9659226306837806,
+    "geomean_native_ratio": 0.9862873791713366,
+    "geomean_size_ratio": 0.9703392370817097,
+    "mean_decision_ms": 5.653774470556527,
+    "mean_pass_ms": 0.9616999999999999,
+    "mean_passes": 12.0,
+    "worst_native_ratio": 1.0285643791076489
+  },
+  "012:dqn_scaled_seed0+noretry": {
+    "geomean_interp_cost_ratio": 0.9062141942708652,
+    "geomean_native_ratio": 0.9448582848748591,
+    "geomean_size_ratio": 0.9122590638731854,
+    "mean_decision_ms": 7.593358919257298,
+    "mean_pass_ms": 1.6634,
+    "mean_passes": 12.0,
+    "worst_native_ratio": 1.0060744936477124
+  },
+  "O1": {
+    "geomean_interp_cost_ratio": 0.9246742751257115,
+    "geomean_native_ratio": 0.8849508067521602,
+    "geomean_size_ratio": 0.8819722054704909,
+    "mean_decision_ms": 0.005107029573991895,
+    "mean_pass_ms": 0.6591,
+    "mean_passes": 5.0,
+    "worst_native_ratio": 1.0155884152645809
+  },
+  "O2": {
+    "geomean_interp_cost_ratio": 0.7409571264497861,
+    "geomean_native_ratio": 0.850144787132498,
+    "geomean_size_ratio": 0.870255561546452,
+    "mean_decision_ms": 0.008798035560175776,
+    "mean_pass_ms": 2.2775999999999996,
+    "mean_passes": 12.0,
+    "worst_native_ratio": 1.0884372586884392
+  },
+  "fc-O0": {
+    "geomean_interp_cost_ratio": 1.0,
+    "geomean_native_ratio": 1.0,
+    "geomean_size_ratio": 1.0,
+    "mean_decision_ms": 0.0013220065739005804,
+    "mean_pass_ms": 0.007400000000000001,
+    "mean_passes": 0.0,
+    "worst_native_ratio": 1.0
+  },
+  "frequency": {
+    "geomean_interp_cost_ratio": 0.746545619274164,
+    "geomean_native_ratio": 0.8365858034540107,
+    "geomean_size_ratio": 0.9293219601233229,
+    "mean_decision_ms": 0.007856008596718311,
+    "mean_pass_ms": 1.9985000000000004,
+    "mean_passes": 11.0,
+    "worst_native_ratio": 1.0279915978118597
+  },
+  "llvm-O2": {
+    "geomean_interp_cost_ratio": 1.0,
+    "geomean_native_ratio": 0.13711151502793328,
+    "geomean_size_ratio": 0.6044257026542073,
+    "mean_decision_ms": 0.0,
+    "mean_pass_ms": 0.0078,
+    "mean_passes": 0.0,
+    "worst_native_ratio": 0.8904858778630261
+  },
+  "model:gradient_boosting": {
+    "geomean_interp_cost_ratio": 0.8149828438471303,
+    "geomean_native_ratio": 0.8548388398808807,
+    "geomean_size_ratio": 0.9685045383358867,
+    "mean_decision_ms": 93.04545767372474,
+    "mean_pass_ms": 0.9596,
+    "mean_passes": 5.1,
+    "worst_native_ratio": 1.1185625511130066
+  },
+  "oracle-greedy": {
+    "geomean_interp_cost_ratio": 0.7409767346481465,
+    "geomean_native_ratio": 0.8608844736703585,
+    "geomean_size_ratio": 1.0187301890267484,
+    "mean_decision_ms": 12446.716907300288,
+    "mean_pass_ms": 1.0326,
+    "mean_passes": 4.5,
+    "worst_native_ratio": 1.088124965570971
+  }
+}

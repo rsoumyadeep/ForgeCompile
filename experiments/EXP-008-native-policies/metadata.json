@@ -1,0 +1,67 @@
+{
+  "environment": {
+    "cpu_count": 64,
+    "forgecompile_version": "0.0.1",
+    "git": {
+      "commit": "7ff2e0733e4f4d75f566993dd2b23a8079aa837e",
+      "dirty": false
+    },
+    "load_average": [
+      15.08740234375,
+      17.44970703125,
+      21.1064453125
+    ],
+    "platform": {
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "release": "6.2.0-39-generic",
+      "system": "Linux",
+      "version": "#40~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Thu Nov 16 10:53:04 UTC 2"
+    },
+    "python": {
+      "executable": "/data/home/rsoumyadeep/ForgeCompile/.venv/bin/python3",
+      "implementation": "CPython",
+      "version": "3.11.16"
+    },
+    "tools": [
+      {
+        "available": true,
+        "detail": "LLVM 22.1.0",
+        "name": "llvmlite",
+        "version": "0.50.0"
+      },
+      {
+        "available": true,
+        "detail": "python -m ziglang",
+        "name": "zig",
+        "version": "0.16.0"
+      },
+      {
+        "available": true,
+        "detail": "/usr/bin/clang",
+        "name": "clang",
+        "version": "Ubuntu clang version 14.0.0-1ubuntu1.1"
+      }
+    ]
+  },
+  "experiment_id": "EXP-008-native-policies",
+  "finished_utc": "2026-10-03T14:35:15.451647+00:00",
+  "seed": 0,
+  "started_utc": "2026-10-03T14:13:57.932601+00:00",
+  "status": "completed",
+  "summary": {
+    "policies": [
+      "fc-O0",
+      "O1",
+      "O2",
+      "frequency",
+      "model:gradient_boosting",
+      "oracle-greedy",
+      "006:dqn_seed0",
+      "006:dqn_seed0+noretry",
+      "012:dqn_scaled_seed0",
+      "012:dqn_scaled_seed0+noretry",
+      "llvm-O2"
+    ]
+  }
+}

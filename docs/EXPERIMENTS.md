@@ -891,3 +891,67 @@ These are tiny-data results and are **not evidence** for any hypothesis.
   - H3: every learned policy's decision time exceeds O2's total ForgeCompile pass time.
 - **Configuration:** `experiments/EXP-008-native-policies/run.py --repeats 10 --noretry --dqn
   <EXP-006 seed0> <EXP-012 best>`. It runs alone on the server, with the load average recorded.
+- **Run:**
+  - A sanity run (arith_hash, 2 repeats) came first.
+  - Full run: commit `7ff2e07`, server (load average about 17–24 from other users), 21 min,
+    10 repeats, 12 configurations per kernel.
+  - Checkpoints: `EXP-006 seed0` and `EXP-012 scaled seed0` (the best validation score in
+    each experiment).
+  - Timing noise: median CV 1.4%, max 10.5%. Curated results are in
+    `experiments/EXP-008-native-policies/`.
+- **Results** (geomean over the 10 kernels, relative to fc-O0 at LLVM -O0; lower is better):
+
+  | policy | native time | worst kernel | `.text` size | interp. cost | passes | decision ms | pass ms |
+  |---|---:|---:|---:|---:|---:|---:|---:|
+  | *llvm-O2 (external reference)* | *0.137* | 0.890 | 0.604 | 1.000 | 0 | 0 | 0 |
+  | frequency order | **0.837** | 1.028 | 0.929 | 0.747 | 11.0 | 0 | 2.0 |
+  | O2 | 0.850 | 1.088 | **0.870** | 0.741 | 12.0 | 0 | 2.3 |
+  | supervised model (GBDT) | 0.855 | 1.119 | 0.969 | 0.815 | 5.1 | 93 | 1.0 |
+  | greedy oracle | 0.861 | 1.088 | 1.019 | **0.741** | 4.5 | 12,447 | 1.0 |
+  | O1 | 0.885 | 1.016 | 0.882 | 0.925 | 5.0 | 0 | 0.7 |
+  | DQN EXP-012 + no-retry | 0.945 | 1.006 | 0.912 | 0.906 | 12.0 | 7.6 | 1.7 |
+  | DQN EXP-006 + no-retry | 0.952 | 1.027 | 0.975 | 0.884 | 6.0 | 3.9 | 1.1 |
+  | DQN EXP-012 (plain) | 0.986 | 1.029 | 0.970 | 0.966 | 12.0 | 5.7 | 1.0 |
+  | DQN EXP-006 (plain) | 0.988 | 1.005 | 0.993 | 0.894 | 6.1 | 3.4 | 1.3 |
+
+  Per kernel (native ratio; O2 / model / oracle / best DQN):
+  - matmul 0.670 / 0.705 / 0.655 / 0.715;
+  - stencil 0.754 / 0.881 / 0.678 / 1.006;
+  - saxpy 0.698 / 0.749 / 0.699 / 1.000;
+  - sieve 0.725 / 0.810 / 0.962 / 0.967;
+  - **loop_nest 1.022 / 0.688 / 1.031 / 0.696**;
+  - **arith_hash 1.088 / 1.001 / 1.088 / 1.001**;
+  - memory_sort 0.967 / 1.119 / 0.919 / 0.979.
+- **Hypotheses.**
+  - **H1 supported:**
+    - no learned policy beats O2 natively beyond the ~3% noise band (EXP-003);
+    - the supervised model is +0.6% (within noise) and the DQNs are 11–16% worse;
+    - the data-derived *frequency order* is 1.5% better than O2, which is also within noise.
+  - **H2 partly rejected:**
+    - O2's native gain at LLVM -O0 is larger than predicted: time ratio 0.850 (−15%), not
+      < 10%;
+    - it is smaller than its interpreter-cost reduction (0.741), as predicted.
+  - **H3 supported:** every learned policy's decision time (DQN 3–8 ms, model 93 ms, oracle
+    12 s) exceeds O2's entire ForgeCompile pass time on these kernels (2.3 ms).
+- **The proxy's blind spot, made concrete:**
+  - On `loop_nest` and `arith_hash`, every policy that applies **strength reduction** (O2,
+    frequency, oracle) is slower than doing nothing, by up to 9%.
+  - The model and the DQN rarely choose `strength`, since it was the best label in only 26 of
+    2,966 training states. On `loop_nest` they are **32% faster than O2 natively** while
+    *worse* on interpreter cost (0.435 vs 0.362).
+  - At LLVM -O0, strength reduction swaps a cheap multiply for an extra loop-carried value,
+    i.e. a stack slot. EXP-002 measured the same effect (strength: worst case 1.19×).
+  - These native wins are a side effect of the proxy mismatch, not learned insight. On other
+    kernels (stencil, sieve, memory_sort) the model loses 12–17% to O2.
+  - The greedy oracle, optimal for the proxy at each step, is not the native winner. It is
+    best on stencil and memory_sort, poor on memory_sieve (0.962, it stops before the
+    copyprop→bce enabling pair pays off), and produces the largest code (1.019 size ratio,
+    because of inlining).
+- **Interpretation (answers research questions 1, 3 and 5 natively):**
+  1. Natively, no learned scheduler beats the fixed O2 pipeline overall.
+  2. Where learned policies win (loop_nest), they win because the training objective is wrong
+     in their favour on that kernel, not because they learned something correct.
+  3. Decision overhead exceeds the optimization work itself at this program scale.
+  4. O2 also gives the smallest code.
+  5. LLVM -O2 alone is 6× faster than anything ForgeCompile schedules at -O0. Pass scheduling
+     inside ForgeCompile is a second-order effect next to code generation quality.
