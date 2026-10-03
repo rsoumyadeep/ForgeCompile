@@ -17,8 +17,8 @@ Status legend: ✅ done · 🔨 in progress · ⏳ not started · ⚠️ done wi
 | 6 | Benchmarking infrastructure | 🔨 code done; EXP-002/003 pending on the server | — |
 | 7 | ML-based pass selection | ⚠️ done; negative end-to-end result | [PHASE_7](phases/PHASE_7.md) |
 | 8 | RL environment | ✅ | [PHASE_8](phases/PHASE_8.md) |
-| 9 | RL optimization agent | 🔨 EXP-006 done (negative); EXP-012 follow-up pending | — |
-| 10 | Experimental study + ablations | ⏳ | — |
+| 9 | RL optimization agent | ⚠️ done; negative result (EXP-006, EXP-012) | [PHASE_9](phases/PHASE_9.md) |
+| 10 | Experimental study + ablations | 🔨 EXP-011 done; EXP-009/010 running; EXP-008 pending | — |
 | 11 | Final hardening + audit | ⏳ | — |
 
 ---
