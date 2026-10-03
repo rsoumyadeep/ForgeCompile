@@ -177,3 +177,28 @@ O2 and oracle-greedy restricted to each action space; commit `e37527c`. Data:
 
 EXP-010's base condition reproduced EXP-006's seeds 0 and 1 bit-exactly: identical validation
 scores and test ratios.
+
+## EXP-002 — Does the interpreter cost predict native speedups? (Phase 6) — mostly no
+
+**Setup:** 13 ForgeCompile pipelines × 10 kernels at LLVM -O0, 5 interleaved repeats, correctness
+gate; server; commit `7ff2e07`. A new run replaces the aborted laptop attempt (F-015). Data:
+`experiments/EXP-002-cost-model/`.
+
+| predictor | pooled Spearman | pooled Pearson |
+|---|---:|---:|
+| weighted interpreter cost (the RL/ML reward) | **0.286** | 0.325 |
+| raw dynamic instruction count | 0.308 | 0.378 |
+
+| pipeline | predicted ratio (geomean) | measured native ratio (geomean) |
+|---|---:|---:|
+| O2 | 0.741 | **0.849** (8/10 kernels faster; matmul 0.668; arith_hash 1.088, loop_nest 1.029 slower) |
+| licm | 0.871 | 1.004 |
+| strength | 0.942 | 1.008 (worst 1.190) |
+| simplifycfg | 0.985 | 0.913 |
+
+- ForgeCompile O2 gives a real **~15% native speedup at LLVM -O0**, but the cost model ranks
+  outcomes only weakly.
+- The cost model overrates loop-code motion (licm, strength) and underrates branch removal.
+- The latency weights add nothing over plain instruction counts.
+- Every learned-scheduler result measured with this proxy (EXP-004–012) must be read as a
+  statement about the proxy. EXP-008 re-measures the schedules natively.

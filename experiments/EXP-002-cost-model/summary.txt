@@ -1,0 +1,6 @@
+points: 120
+pooled Spearman (cost vs measured): 0.286
+pooled Pearson  (cost vs measured): 0.325
+pooled Spearman (steps vs measured): 0.308
+pooled Pearson  (steps vs measured): 0.378
+per-benchmark Spearman (cost): arith_hash=-0.16, branch_classify=0.33, call_fib=0.28, call_helpers=0.65, loop_nest=-0.26, matrix_matmul=0.18, matrix_stencil=0.52, memory_sieve=0.56, memory_sort=0.59, vector_saxpy=0.49

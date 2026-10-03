@@ -184,7 +184,69 @@ Where each question is answered:
   - The ratios assume per-repetition work is size-independent. Only the repetition count
     differs between the small and large instances.
   - LLVM -O0 code generation (stack-heavy) differs from optimized code.
-- **Results / interpretation:** below, after the run.
+- **Runs:**
+  - **First attempt (laptop, 2026-10-02): aborted** at benchmark 8/10 because of system memory
+    pressure (F-015). Run directory `EXP-002-cost-model_20261002T130843234531Z`, status
+    `aborted`. Not evidence.
+  - Server sanity run (2 benchmarks, 2 repeats, commit `a253566`): not evidence.
+  - **Evidence run:** new run `EXP-002-cost-model_20261003T134911906982Z`, commit `7ff2e07`,
+    server (EPYC 7513, shared; load average about 20–30 from other users), full pre-registered
+    configuration (13 pipelines × 10 benchmarks × 5 repeats, LLVM -O0). It took 15 min.
+    Startup baseline: 0.9 ms. Curated results are in `experiments/EXP-002-cost-model/`.
+- **Results** (120 points; ratios vs fc-O0 per benchmark; lower is better):
+  - Pooled Spearman (cost vs measured) **0.286**, Pearson 0.325.
+  - Raw dynamic instruction count: Spearman 0.308, Pearson 0.378.
+  - Per-benchmark Spearman (cost):
+    - arith_hash −0.16, loop_nest −0.26;
+    - matrix_matmul 0.18, call_fib 0.28, branch_classify 0.33;
+    - vector_saxpy 0.49, matrix_stencil 0.52, memory_sieve 0.56, memory_sort 0.59,
+      call_helpers 0.65.
+  - Timing noise: median CV 2.5%, maximum 11.4% (branch_classify).
+
+  | pipeline | predicted (geomean) | measured native (geomean) | worst measured |
+  |---|---:|---:|---:|
+  | O2 | 0.741 | **0.849** | 1.088 (arith_hash) |
+  | O1 | 0.925 | 0.882 | 1.028 |
+  | licm | 0.871 | 1.004 | 1.051 |
+  | strength | 0.942 | 1.008 | **1.190** |
+  | cse | 0.948 | 1.007 | 1.106 |
+  | bce | 0.906 | 0.960 | 1.017 |
+  | simplifycfg | 0.985 | **0.913** | 1.033 |
+  | inline | 0.961 | 0.985 | 1.056 |
+  | copyprop / dce / sccp / constfold | 0.956 / 0.956 / 0.985 / 0.985 | 0.993 / 0.973 / 0.989 / 0.997 | ≤ 1.042 |
+
+  O2 per benchmark (predicted → measured):
+  - matmul 0.609 → 0.668, saxpy 0.856 → 0.698, stencil 0.658 → 0.739, sieve 0.839 → 0.754;
+  - call_helpers 0.597 → 0.788, branch_classify 0.949 → 0.859, memory_sort 0.902 → 0.989;
+  - call_fib 1.000 → 1.001, **loop_nest 0.362 → 1.029, arith_hash 0.938 → 1.088**.
+- **Hypotheses.**
+  - **H1 rejected:** pooled Spearman 0.286 < 0.5. The interpreter cost ranks native outcomes
+    only weakly, and on two kernels the correlation is *negative*.
+  - **H2 rejected:** the latency-weighted cost predicts no better than the raw instruction
+    count (0.286 vs 0.308 Spearman). The assumed weights add nothing.
+  - **H3 supported in a sharper form:**
+    - The worst mispredictions are the loop passes: `licm` (predicted −13%, measured +0.4%)
+      and `strength` (predicted −6%, measured +0.8%, worst +19%).
+    - `cse` is also badly mispredicted. `inline` is only moderately off.
+    - The cost model *underestimates* `simplifycfg` (predicted −1.5%, measured −8.7%).
+- **Interpretation:**
+  1. **ForgeCompile O2 makes native code about 15% faster at LLVM -O0** (geomean, 8 of 10
+     kernels faster, up to 1.5× on matmul), but less than the interpreter predicts (26%).
+  2. The model fails where the cost of an IR instruction depends on code generation. At LLVM
+     -O0 every value lives in a stack slot, so removing or hoisting cheap register arithmetic
+     saves little, and LICM and strength reduction add loop-carried values (extra stack
+     traffic).
+  3. Latency-bound loops (`arith_hash`: a chain of divisions) do not speed up when
+     off-critical-path instructions disappear.
+  4. Removing branches and jumps (simplifycfg) is worth more natively than one "instruction"
+     each.
+  5. **Consequence for Phases 7–10:** every learned scheduler optimized a proxy that is only
+     weakly aligned with native time. EXP-008 measures the learned schedules natively. The
+     interpreter-level conclusions (EXP-005/006/011) are statements about the proxy and must
+     be read that way.
+- **D-006 status:** the deterministic interpreter cost was kept as the training signal
+  (exact, cheap, reproducible), with this documented limitation. A learned or native-time cost
+  model is listed as future work.
 
 ## EXP-003 — ForgeCompile pipelines vs LLVM's optimizer, and reproducibility
 
