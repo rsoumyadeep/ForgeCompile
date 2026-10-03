@@ -27,11 +27,15 @@ The subject is optimization decisions. Owning the IR and the passes means:
 LLVM is still used for what it is best at: code generation (D-002, LLVM_BACKEND.md §1).
 
 **🟡 What is the most interesting thing you found?**
-Pick from RESULTS.md. Good candidates:
-- the LICM negative result (EXP-001);
-- the interpreter-cost-vs-native-time correlation (EXP-002);
-- two bugs found by experiments rather than tests (F-010 SCCP, F-016 unparseable names);
-- whether the learned schedulers beat O2 (EXP-005/006/008).
+That the learned schedulers *could not* beat `-O2`, and why. A beam search over 12-pass
+schedules found only about 1.1% average headroom above O2 on generated programs and 0% on the
+hand-written kernels (EXP-011).
+
+Further examples:
+- the regret-vs-schedule paradox: the model beat the majority baseline 4.4× on one-step regret,
+  yet lost to O2 end to end (EXP-004/005);
+- two bugs found by experiments rather than tests (F-010 SCCP, F-016 unparseable register
+  names).
 
 ## 2. Frontend
 
@@ -219,8 +223,11 @@ One that answers "is it just…?":
 - greedy oracle: how much is left to gain?
 
 **🔴 Your features include hand-made "opportunity detectors". Isn't the model just reading them?**
-That is a fair challenge, and EXP-009 tests it by retraining without each feature group and
-with *only* that group. Quote the numbers.
+Largely yes, but not *only* them. In EXP-009:
+- the 8 detectors alone recover 96% of the regret reduction over the majority baseline;
+- removing them hurts validation regret most (0.0163 vs 0.0148);
+- removing any one other group barely matters, because the groups are redundant: generic
+  counts carry similar information.
 
 **🔴 Prediction accuracy vs compiler performance?**
 They are different things. A model can be accurate on easy states and wrong on the few that
@@ -248,8 +255,11 @@ the number of passes:
 
 **🟡 Why RL instead of supervised learning?**
 The supervised model imitates a *one-step greedy* oracle. RL optimizes the *sum* of rewards, so
-it can learn enabling sequences (e.g. copyprop before bce) that greedy search skips. Whether
-that matters here is measured by EXP-006, not assumed.
+it can learn enabling sequences (e.g. copyprop before bce) that greedy search skips.
+
+Here it did not pay off:
+- beam search shows lookahead is worth only about 1% (EXP-011);
+- the DQN finished below both the supervised model and O2 (EXP-006/012).
 
 **🟡 Why is the step counter in the observation?**
 With a hard horizon the optimal action depends on the remaining budget. Observing it makes the
@@ -300,6 +310,29 @@ the best geomean cost ratio is kept. Test programs are never used. Every seed is
 - *Quality:* a bad pass may waste compile time or make the program slower (e.g. LICM).
 - The policy can recover in later steps, and the "worst ratio" column in the results shows the
   damage when it does not.
+
+**🟡 Why did your RL agent fail?**
+Three measured reasons:
+1. **It repeated no-op passes** (EXP-006). A repeat's true value is only λ = 0.002 below the
+   best action, which is smaller than the Q-network's error. Adding the supervised policy's
+   "never retry in an unchanged state" rule closed 31–63% of the gap to O2 (EXP-012).
+2. **More training did not help.** With 4× the episodes, the best validation checkpoints came
+   from episodes 100–1,800 of 12,000 (EXP-012).
+3. **There was almost nothing to learn.** Beam search finds only about 1% headroom above O2
+   (EXP-011).
+
+A two-step chain-MDP test shows that the TD update itself works.
+
+**🔴 If neither ML nor RL beat O2, what is the value of the project?**
+- A complete, correctness-checked compiler.
+- A clean experimental harness.
+- A *quantified* negative result with root causes:
+  - headroom (EXP-011);
+  - error compounding (EXP-005);
+  - action gaps (EXP-006/012);
+  - workload coverage (EXP-004).
+- It tells you exactly what would have to change for learned scheduling to pay off
+  (ROADMAP "Future work"). Reporting that honestly is the point.
 
 ## 11. Evaluation and limitations
 
