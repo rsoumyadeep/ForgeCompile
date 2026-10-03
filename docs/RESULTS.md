@@ -112,3 +112,21 @@ validation programs; held-out evaluation with outputs checked. Commit `039d03b`.
 - Diagnosed failure: the policies repeat one no-op pass (e.g. `licm` ×12). The −0.002 per-step
   penalty is a smaller action gap than the Q-function's error. The DQN also lacked the supervised
   policy's no-retry rule; that follow-up is EXP-012.
+
+## EXP-011 — Headroom: how much better than O2 can any 12-pass schedule be? (Phase 10)
+
+**Setup:** beam search over pass sequences (widths 1/4/16, budget 12, best-at-any-depth, IR-hash
+deduplication), on 100 test + 17 OOD programs. Measurement only. Commit `dbabcbf`. Data:
+`experiments/EXP-011-headroom/`.
+
+| programs | O2 | beam-1 (greedy) | beam-4 | beam-16 |
+|---|---:|---:|---:|---:|
+| generated (100) | 0.558 | 0.552 | 0.552 | **0.552** |
+| benchmarks (10) | 0.741 | 0.741 | 0.741 | 0.741 |
+| examples (7) | 0.828 | 0.825 | 0.825 | 0.825 |
+
+- **The best schedules that beam search finds are only about 1% better than O2 on average**
+  (0% on the hand-written kernels). They are > 1% better on 22/100 generated programs (up to
+  12%), and never worse.
+- The learnable headroom in this action space is therefore tiny. That is the main reason the
+  supervised (EXP-005) and RL (EXP-006) schedulers cannot beat O2.

@@ -1,0 +1,96 @@
+{
+  "environment": {
+    "cpu_count": 64,
+    "forgecompile_version": "0.0.1",
+    "git": {
+      "commit": "dbabcbf4132ee362e1af6412f615654cbb027242",
+      "dirty": false
+    },
+    "load_average": [
+      19.71240234375,
+      22.96630859375,
+      27.38037109375
+    ],
+    "platform": {
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "release": "6.2.0-39-generic",
+      "system": "Linux",
+      "version": "#40~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Thu Nov 16 10:53:04 UTC 2"
+    },
+    "python": {
+      "executable": "/data/home/rsoumyadeep/ForgeCompile/.venv/bin/python3",
+      "implementation": "CPython",
+      "version": "3.11.16"
+    },
+    "tools": [
+      {
+        "available": true,
+        "detail": "LLVM 22.1.0",
+        "name": "llvmlite",
+        "version": "0.50.0"
+      },
+      {
+        "available": true,
+        "detail": "python -m ziglang",
+        "name": "zig",
+        "version": "0.16.0"
+      },
+      {
+        "available": true,
+        "detail": "/usr/bin/clang",
+        "name": "clang",
+        "version": "Ubuntu clang version 14.0.0-1ubuntu1.1"
+      }
+    ]
+  },
+  "experiment_id": "EXP-011-headroom",
+  "finished_utc": "2026-10-03T11:38:03.182229+00:00",
+  "seed": 0,
+  "started_utc": "2026-10-03T11:28:43.187770+00:00",
+  "status": "completed",
+  "summary": {
+    "summary": {
+      "all": {
+        "O2": 0.5855796249004102,
+        "beam1": 0.5801725012662524,
+        "beam16": 0.5800932936567607,
+        "beam16_worse_than_O2": 0.0,
+        "beam1_worse_than_O2": 4.0,
+        "beam4": 0.5801119300690737,
+        "beam4_worse_than_O2": 1.0,
+        "n": 117.0
+      },
+      "benchmark": {
+        "O2": 0.7409571264497861,
+        "beam1": 0.7409586327948275,
+        "beam16": 0.7409108087198374,
+        "beam16_worse_than_O2": 0.0,
+        "beam1_worse_than_O2": 1.0,
+        "beam4": 0.7409108087198374,
+        "beam4_worse_than_O2": 0.0,
+        "n": 10.0
+      },
+      "example": {
+        "O2": 0.8280458677166904,
+        "beam1": 0.825144567284553,
+        "beam16": 0.825144567284553,
+        "beam16_worse_than_O2": 0.0,
+        "beam1_worse_than_O2": 0.0,
+        "beam4": 0.825144567284553,
+        "beam4_worse_than_O2": 0.0,
+        "n": 7.0
+      },
+      "generated": {
+        "O2": 0.5582547850931029,
+        "beam1": 0.5523639860882517,
+        "beam16": 0.5522793208650637,
+        "beam16_worse_than_O2": 0.0,
+        "beam1_worse_than_O2": 3.0,
+        "beam4": 0.5523000800498784,
+        "beam4_worse_than_O2": 1.0,
+        "n": 100.0
+      }
+    }
+  }
+}

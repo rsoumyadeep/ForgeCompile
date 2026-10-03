@@ -552,3 +552,33 @@ These are tiny-data results and are **not evidence** for any hypothesis.
     problem is smaller.
   - H5: no condition beats O2 on generated test programs.
 - **Configuration:** `experiments/EXP-010-rl-ablations/run.py --episodes 2000 --seeds 0 1 --workers 16`.
+- **Run:** commit `dbabcbf`, server, 16 workers, 9.3 min. Curated results are in
+  `experiments/EXP-011-headroom/`.
+- **Results** (geomean final/initial interpreter cost):
+
+  | programs | n | O2 | beam-1 | beam-4 | beam-16 |
+  |---|---:|---:|---:|---:|---:|
+  | generated | 100 | 0.558 | 0.552 | 0.552 | 0.552 |
+  | benchmarks | 10 | 0.741 | 0.741 | 0.741 | 0.741 |
+  | examples | 7 | 0.828 | 0.825 | 0.825 | 0.825 |
+
+  Per program, on generated code:
+  - beam-16 beats O2 by > 1% on 22/100 programs, by 12.1% at best;
+  - beam-16 improves on beam-1 on 12 programs;
+  - O2 never beats beam-16 (0/117).
+
+  Search cost: median 351 distinct states and 7.7 s per program; at most 276 s.
+- **Hypotheses.**
+  - **H1 supported:** beam-1 (0.552) matches EXP-005's greedy oracle (0.553). It is slightly
+    better because it may pass through a non-improving step and keeps the best state seen.
+  - **H2 strongly supported:** even a 16-wide search over 12-pass sequences improves on O2 by
+    only **1.1% geomean** on generated programs and **0%** on the hand-written kernels.
+- **Interpretation (key finding):**
+  - On this action space and cost model, *no* scheduler can do much better than O2 on
+    average. That explains EXP-005 and EXP-006 better than any model deficiency would.
+  - The realistic upper limit for a learned scheduler is about 1% on average, with
+    occasional 5–12% wins on a minority of programs. Neither the supervised model nor the
+    DQN reached even O2.
+  - To make pass scheduling worth learning, the problem must change. The candidates are
+    parameterized passes, passes with real trade-offs (unrolling, inlining thresholds),
+    a native-time objective, or LLVM's much larger pass space (see ROADMAP "future work").
