@@ -241,3 +241,49 @@ def test_no_retry_dqn_policy_never_repeats_a_pass_in_an_unchanged_state() -> Non
         assert key not in seen
         seen.add(key)
         module = apply_pass(module, action)
+
+
+class _ChainEnv:
+    """Two-step MDP that needs bootstrapping (delayed reward), unlike the one-step bandit.
+
+    s0: action 0 -> +0.1, episode ends; action 1 -> 0 reward, go to s1.
+    s1: action 0 -> +1.0, episode ends; action 1 -> 0, episode ends.
+    Optimal: Q(s0, 1) = 1.0 > Q(s0, 0) = 0.1, learnable only through the TD target.
+    """
+
+    obs_size, n_actions = 3, 2
+
+    def __init__(self) -> None:
+        self.invalid_transformations = 0
+        self.stats = type("S", (), {"total_reward": 0.0, "final_cost": 1.0, "initial_cost": 1.0})()
+        self.state = 0
+
+    def _obs(self) -> np.ndarray:
+        obs = np.zeros(3)
+        obs[self.state] = 1.0
+        obs[2] = 1.0  # constant feature
+        return obs
+
+    def reset(self) -> tuple[np.ndarray, dict[str, object]]:
+        self.state, self.stats.total_reward = 0, 0.0
+        return self._obs(), {}
+
+    def step(self, action: int) -> tuple[np.ndarray, float, bool, bool, dict[str, object]]:
+        if self.state == 0 and action == 1:
+            self.state = 1
+            return self._obs(), 0.0, False, False, {}
+        reward = (0.1 if action == 0 else 0.0) if self.state == 0 else (1.0 if action == 0 else 0.0)
+        self.stats.total_reward += reward
+        return self._obs(), reward, True, False, {}
+
+
+def test_dqn_bootstraps_delayed_reward_on_a_chain() -> None:
+    config = DQNConfig(
+        hidden=16, warmup_steps=100, epsilon_decay_steps=600, target_update=25, batch_size=16
+    )
+    env = _ChainEnv()
+    agent = DQNAgent(env.obs_size, env.n_actions, config)
+    train(env, agent, episodes=1500)  # type: ignore[arg-type]
+    q0 = agent.q_values(np.array([1.0, 0.0, 1.0]))
+    assert int(np.argmax(q0)) == 1  # take the zero-reward action that leads to +1.0
+    assert q0[1] == pytest.approx(1.0, abs=0.2) and q0[0] == pytest.approx(0.1, abs=0.2)
