@@ -14,7 +14,7 @@ Status legend: ✅ done · 🔨 in progress · ⏳ not started · ⚠️ done wi
 | 3 | IR, reference interpreter, CFG, SSA | ✅ | [PHASE_3](phases/PHASE_3.md) |
 | 4 | Classical optimization engine | ✅ | [PHASE_4](phases/PHASE_4.md) |
 | 5 | LLVM backend + native executables | ✅ | [PHASE_5](phases/PHASE_5.md) |
-| 6 | Benchmarking infrastructure | 🔨 code done; EXP-002/003 pending on the server | — |
+| 6 | Benchmarking infrastructure | ✅ | [PHASE_6](phases/PHASE_6.md) |
 | 7 | ML-based pass selection | ⚠️ done; negative end-to-end result | [PHASE_7](phases/PHASE_7.md) |
 | 8 | RL environment | ✅ | [PHASE_8](phases/PHASE_8.md) |
 | 9 | RL optimization agent | ⚠️ done; negative result (EXP-006, EXP-012) | [PHASE_9](phases/PHASE_9.md) |
@@ -131,9 +131,12 @@ types.
 - [x] `docs/LLVM_BACKEND.md` §1 tabulates what ForgeCompile implements vs what LLVM provides.
 - [x] LLVM `-O1..3` are available as comparison baselines (`--llvm-opt`).
 
-## Phase 6 — Benchmarking infrastructure
+## Phase 6 — Benchmarking infrastructure ✅
 
 **Objective:** a reproducible measurement harness.
+
+**Outcome (2026-10-03):** EXP-003 measured a run-to-run median difference of 0.53% (noise band
+about 3%). EXP-002 found the interpreter cost a weak predictor of native time (Spearman 0.29).
 
 - Benchmark programs covering arithmetic, branches, loops, memory, calls, vectors and matrices.
   A program generator for training data.
