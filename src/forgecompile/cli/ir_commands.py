@@ -74,7 +74,8 @@ def scheduled_pipeline(args: argparse.Namespace, source_text: str, name: str) ->
         if not checkpoint.exists():
             raise CliError(f"no DQN checkpoint at {checkpoint} (train one with EXP-006)")
         n = len(ENV_ACTIONS)
-        policy = DQNPolicy(DQNAgent.load(checkpoint, len(FEATURE_NAMES) + 1 + n, n))
+        agent = DQNAgent.load(checkpoint, len(FEATURE_NAMES) + 1 + n, n)
+        policy = DQNPolicy(agent, no_retry=True)  # no repeats in an unchanged state (EXP-012)
     result = schedule(policy, build_ir(source_text, name), max_steps=args.max_passes)
     print(
         f"schedule ({args.schedule}): {','.join(result.actions) or '(none)'} "
@@ -105,7 +106,7 @@ def add_pipeline_options(parser: argparse.ArgumentParser) -> None:
         "--schedule",
         choices=["oracle", "dqn"],
         help="choose passes per program: 'oracle' (greedy, applies and measures every pass) "
-        "or 'dqn' (the trained RL policy); the chosen list is printed to stderr",
+        "or 'dqn' (the trained RL policy, with the no-retry rule); the list goes to stderr",
     )
     parser.add_argument("--checkpoint", help="DQN checkpoint (.npz) for --schedule dqn")
     parser.add_argument(
