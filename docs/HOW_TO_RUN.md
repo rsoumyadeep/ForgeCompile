@@ -78,7 +78,7 @@ The server times below come from the recorded runs (AMD EPYC 7513, shared machin
 | EXP-003 ForgeCompile vs LLVM, reproducibility | `uv run python experiments/EXP-003-fc-vs-llvm/run.py --repeats 7 --seeds 0 1` | see EXPERIMENTS.md |
 | EXP-007 dataset validation | `uv run python scripts/validate_dataset.py --n-train 80 --n-val 20 --n-test 20 --workers 8 --replay 24` | 15 min (server) |
 | EXP-004 next-pass prediction | `uv run python experiments/EXP-004-pass-prediction/run.py --workers 16` | 5 min (server; builds the cached dataset) |
-| EXP-005 ML-guided scheduling | `uv run python experiments/EXP-005-ml-scheduling/run.py --workers 16` | ~45 min (server; the oracle dominates) |
+| EXP-005 ML-guided scheduling | `uv run python experiments/EXP-005-ml-scheduling/run.py --workers 16` | 12 min (server; the greedy oracle dominates) |
 | EXP-006 DQN | `uv run python experiments/EXP-006-rl-scheduling/run.py --episodes 3000 --seeds 0 1 2 --seed-workers 3 --workers 16` | see EXPERIMENTS.md |
 | EXP-008 native policies | `uv run python experiments/EXP-008-native-policies/run.py --repeats 10 --workers 16` | see EXPERIMENTS.md |
 | EXP-009 ML ablations | `uv run python experiments/EXP-009-ml-ablations/run.py --workers 16` | see EXPERIMENTS.md |
