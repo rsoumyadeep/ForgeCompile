@@ -232,7 +232,7 @@ Where each question is answered:
 - **Interpretation:**
   1. **ForgeCompile O2 makes native code about 15% faster at LLVM -O0** (geomean, up to 1.5×
      on matmul), but less than the interpreter predicts (26%).
-     - Against EXP-003's ~3% noise band: faster on 6–7 kernels, unchanged on call_fib and
+     - Against EXP-003's ~3% noise band: faster on 6 kernels; unchanged on memory_sort, call_fib and
        loop_nest (1.029 here, 0.98–1.00 in EXP-003, i.e. within noise).
      - Reproducibly slower on arith_hash (+8.8% here, +8.8% in both EXP-003 runs).
   2. The model fails where the cost of an IR instruction depends on code generation. At LLVM
