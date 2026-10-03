@@ -5,8 +5,8 @@ lands in the same split as that program. States from one program are highly
 correlated, so splitting by *state* would leak near-duplicates into the test
 set.
 
-* ``train`` / ``val`` / ``test``: generated programs (``LOOP_HEAVY`` profile)
-  with disjoint seed ranges;
+* ``train`` / ``val`` / ``test``: generated programs (``config.profile``, by default
+  ``loop_heavy``) with disjoint seed ranges;
 * ``ood``: out-of-distribution, hand-written programs: the benchmark kernels
   (small instances) and the examples. They are never used for training or model
   selection. They answer "does it generalize beyond the generator?".
@@ -39,7 +39,7 @@ from forgecompile.ml.dataset import (
     record_to_json,
     trajectory,
 )
-from forgecompile.testing.program_generator import LOOP_HEAVY, GeneratorConfig, generate_program
+from forgecompile.testing.program_generator import PROFILES, generate_program
 from forgecompile.utils.environment import git_revision
 
 REPO = Path(__file__).resolve().parents[3]
@@ -57,6 +57,7 @@ class DatasetConfig:
     epsilon: float = 0.3
     metric: str = "cost"
     seed: int = 0
+    profile: str = "loop_heavy"  # generator profile of train/val/test (PROFILES)
 
     def key(self) -> str:
         revision = git_revision(REPO)
@@ -65,9 +66,8 @@ class DatasetConfig:
         return hashlib.sha1(payload.encode()).hexdigest()[:16] if commit else ""
 
 
-def program_splits(
-    config: DatasetConfig, profile: GeneratorConfig = LOOP_HEAVY
-) -> dict[str, list[ProgramSpec]]:
+def program_splits(config: DatasetConfig) -> dict[str, list[ProgramSpec]]:
+    profile = PROFILES[config.profile]
     seeds = {
         "train": range(config.first_seed, config.first_seed + config.n_train),
         "val": range(

@@ -26,7 +26,7 @@ Let 𝒫 be a set of programs (the training split of generated programs).
 | Symbol | Definition in ForgeCompile |
 |--------|----------------------------|
 | **S** | states s = (M, t): the current SSA IR module M and the step t ∈ {0,…,T} |
-| **O** | observation o = [φ(M), (T−t)/T, onehot(a_{t−1})], where φ = 61 static features (`ml/features.py`) |
+| **O** | observation o = [φ(M), (T−t)/T, onehot(a_{t−1})] ∈ ℝ⁷⁴: φ = 61 static features (`ml/features.py`), 1 remaining-step fraction, 12-way one-hot of the previous action (all zeros at t = 0) |
 | **A** | {constfold, sccp, copyprop, dce, simplify, simplifycfg, cse, licm, strength, bce, inline, **stop**}, so \|A\| = 12 |
 | **P** | deterministic: P((pass_a(M), t+1) \| (M, t), a) = 1. `stop` and t = T are terminal. |
 | **ρ₀** | initial state (M₀(p), 0), with p ~ Uniform(𝒫) and M₀(p) the unoptimized SSA IR |

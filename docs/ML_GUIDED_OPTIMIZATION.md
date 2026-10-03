@@ -84,6 +84,8 @@ feature-group ablation (Phase 10) answers that by retraining without each group.
 **Generator profile.** EXP-001 showed the default generator to be constant-heavy with few
 loops. The `LOOP_HEAVY` profile (deeper loop nests, fewer straight-line constants) is used for
 training data. The defaults remain byte-identical, so earlier experiments stay reproducible.
+The training profile emits **no deliberate traps** (D-036): at the testing rate, about 10% of
+programs trapped, which truncates their cost. The dataset validator (EXP-007) found this.
 
 ## 5. Models and metrics (`ml/models.py`)
 

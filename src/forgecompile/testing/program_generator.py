@@ -70,6 +70,14 @@ LOOP_HEAVY = GeneratorConfig(
     statement_thresholds=(0.15, 0.25, 0.37, 0.45, 0.52, 0.74, 0.85, 0.88),
 )
 
+# Named workload profiles for ML datasets. "default" is the testing generator's
+# (constant-heavy) statement mix without traps: a different distribution, used to
+# measure how learned schedulers transfer between workload distributions (Phase 10).
+PROFILES: dict[str, GeneratorConfig] = {
+    "loop_heavy": LOOP_HEAVY,
+    "default": GeneratorConfig(trap_probability=0.0),
+}
+
 
 @dataclass
 class _Var:
