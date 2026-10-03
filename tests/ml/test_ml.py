@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from forgecompile.driver import build_ir
+from forgecompile.ir.interpreter import run_module
 from forgecompile.ir.printer import format_module
 from forgecompile.ml.dataset import (
     ACTIONS,
@@ -82,6 +83,12 @@ def test_features_on_generated_and_example_programs() -> None:
     for seed in range(15):
         vector = feature_vector(build_ir(generate_program(seed, LOOP_HEAVY)))
         assert all(np.isfinite(vector)) and all(v >= 0 for v in vector)
+
+
+def test_training_profile_programs_do_not_trap() -> None:
+    # D-036: trapping programs truncate their cost, so the ML workload profile emits none.
+    for seed in range(100_000, 100_040):
+        assert run_module(build_ir(generate_program(seed, LOOP_HEAVY))).trap is None
 
 
 def test_feature_columns_ablation() -> None:

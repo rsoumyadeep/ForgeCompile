@@ -60,10 +60,13 @@ class GeneratorConfig:
 
 # Training-workload profile for the ML/RL phases: more and deeper loops and fewer
 # straight-line constant expressions (EXP-001 found the default constant-heavy).
+# No deliberate traps (D-036): about 10% of programs trapped at 0.02, which truncates
+# their cost and makes them unrepresentative optimization workloads.
 LOOP_HEAVY = GeneratorConfig(
     max_statements=7,
     max_loop_depth=3,
     max_loop_bound=6,
+    trap_probability=0.0,
     statement_thresholds=(0.15, 0.25, 0.37, 0.45, 0.52, 0.74, 0.85, 0.88),
 )
 

@@ -520,3 +520,29 @@ one and links back to it.
 - **Chosen:** `ExperimentRun` is a context manager. Any exception inside `with run:` marks the
   run `failed`, with the error, and preserves its directory. Runs killed externally are marked
   `aborted` by hand, with the cause. Neither is ever used as evidence.
+
+## D-036 — The ML/RL training workload profile has no deliberate traps
+
+- **Date:** 2026-10-03 (Phase 7 validation)
+- **Context:** The new dataset validator (`scripts/validate_dataset.py`, EXP-007) found that
+  `LOOP_HEAVY` inherited the differential-testing trap rate (0.02 per index or divisor).
+  About 10% of training programs (30/300 seeds) trapped at run time.
+- **Alternatives:**
+  - (a) Keep them, since a trap is legitimate observable behaviour.
+  - (b) Filter out trapping seeds after generation.
+  - (c) Set `trap_probability=0.0` in the training profile only.
+- **Chosen:** (c). The default profile used by the correctness tests keeps its traps.
+- **Why:**
+  - A trapping program's cost counts only the work done before the trap. Its "speedup" is
+    therefore an artefact of where the trap sits.
+  - The trap also pins down which code a pass may move or delete, which no realistic workload
+    shares.
+  - (b) would make the set of seeds depend on the interpreter.
+  - (c) keeps the RNG stream identical: `chance()` still draws. Programs therefore differ only
+    at the former trap sites.
+- **Consequence:**
+  - Every dataset built before this commit is stale. Only sanity runs existed, and the cache
+    key includes the commit.
+  - Programs that print nothing (about 1%) are kept and reported. Deleting their dead work is
+    a correct optimization, not a reward exploit, because the observable behaviour (exit
+    status) is still checked.
