@@ -182,3 +182,24 @@ feature groups, reward definitions, action spaces and benchmark distributions.
 
 **Objective:** a fresh-clone reproduction of the main results, cleanup, profiling, a dependency
 audit, `INTERVIEW_QUESTIONS.md`, `CV_DESCRIPTION.md`, and the final audit checklist.
+
+## Future work (motivated by measured results, not started)
+
+EXP-011 showed that, with these 11 passes and a 12-pass budget, even beam search finds only
+about 1% average improvement over O2. Learned scheduling only pays off when the decision space
+contains real trade-offs. In order of expected value:
+
+1. **Parameterized passes.** Unroll factors, inlining thresholds, LICM with or without loop
+   rotation. These are decisions where the best choice genuinely depends on the program, and
+   EXP-001 already found one such case (LICM on zero-trip loops).
+2. **A native-time objective, or a learned cost model.** EXP-002 measures where the
+   interpreter cost misleads, e.g. latency-bound loops.
+3. **Training-workload coverage.** The generator never emits induction-variable array
+   indexing, so `bce` is never learnable (EXP-004 diagnosis). A coverage-driven generator
+   should be designed *without* looking at the OOD programs.
+4. **Richer program representations.** Graph neural networks over the CFG/SSA graph instead
+   of 61 counts. This would need a deep-learning framework (D-039 trade-off).
+5. **Lookahead at inference time.** Beam search or MCTS guided by the learned policy or value
+   function. EXP-011 suggests a small beam already captures the available gains.
+6. **Evaluation at LLVM -O2,** to see which ForgeCompile decisions survive LLVM's own
+   pipeline.
