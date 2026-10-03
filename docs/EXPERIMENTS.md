@@ -42,6 +42,21 @@ Rules:
 9. How much training data is required?
 10. What happens when the reward weights change?
 
+Where each question is answered:
+
+| # | Experiment(s) |
+|---|---|
+| 1 | EXP-005 (interpreter cost), EXP-008 (native time, code size) |
+| 2 | EXP-006, EXP-008 |
+| 3 | EXP-008 (per benchmark and workload class), EXP-005 (generated vs hand-written) |
+| 4 | EXP-004 OOD diagnosis, EXP-005/006 worst cases, EXP-008 per-benchmark slowdowns |
+| 5 | decision ms in EXP-005/006/008 vs measured savings |
+| 6 | test split (unseen generated programs) and OOD split in EXP-004/005/006 |
+| 7 | EXP-009 distribution conditions (train on one generator profile, test on another) |
+| 8 | EXP-010 action-space conditions |
+| 9 | EXP-009 data-size conditions |
+| 10 | EXP-010 reward conditions (λ, γ, w_size) |
+
 ## Experiments
 
 ## EXP-001 — Effect of each pass and preset on IR-level work
@@ -257,6 +272,54 @@ These are tiny-data results and are **not evidence** for any hypothesis.
   8 steps, ε = 0.3 and model seed 0.
 - **Metrics:** mean regret (primary), near-optimal rate, accuracy and top-2 accuracy.
 - **Rule:** the model is selected on validation regret, and test/OOD are each scored once.
+- **Runs:**
+  - The first full run (commit `d051986`) **failed**: the dataset build crashed with
+    `BrokenProcessPool`, caused by F-016 (unparseable register names). The run is preserved as
+    failed and is not evidence.
+  - The second run (commit `94b3649`, server, 16 workers) completed. Building the dataset
+    took 245 s, and the whole run took 5 min.
+- **Data:** 400/100/100 generated programs and 17 OOD programs, giving 2,966 / 736 / 734 / 113
+  state records. Curated results are in `experiments/EXP-004-pass-prediction/`.
+- **Results.**
+
+  | model (validation) | accuracy | top-2 | mean regret | near-optimal |
+  |---|---:|---:|---:|---:|
+  | gradient boosting | 0.485 | 0.689 | **0.0148** | 0.573 |
+  | random forest | 0.516 | 0.701 | 0.0150 | 0.601 |
+  | MLP | 0.443 | 0.663 | 0.0195 | 0.519 |
+  | decision tree | 0.418 | 0.530 | 0.0224 | 0.511 |
+  | majority | 0.204 | 0.268 | 0.0554 | 0.265 |
+
+  Gradient boosting was selected, refitted on train + val, and scored once:
+
+  | split | model | accuracy | top-2 | mean regret | near-optimal |
+  |---|---|---:|---:|---:|---:|
+  | test (734 states) | gradient boosting | 0.525 | 0.719 | **0.0152** | 0.620 |
+  | test | majority | 0.213 | 0.304 | 0.0670 | 0.290 |
+  | OOD (113 states) | gradient boosting | 0.327 | 0.602 | 0.0277 | 0.513 |
+  | OOD | majority | 0.248 | 0.292 | **0.0269** | 0.478 |
+
+- **Hypotheses.**
+  - **H1 supported:** test regret is 4.4× lower than the majority baseline.
+  - **H2 supported:** both ensembles beat the single tree and the MLP on validation. GBDT and
+    RF are effectively tied (0.0148 vs 0.0150).
+  - **H3 supported, more strongly than predicted:** on OOD the model's regret advantage
+    *disappears entirely* (0.0277 vs 0.0269).
+- **Why OOD fails (diagnosis, from the label counts):**
+  1. **`bce` is never a training label** (0 of 2,966), but it is the best pass in 10 of 113 OOD
+     states. The generator always indexes arrays as `((e % n) + n) % n`, so generated code
+     never has a check that `bce` can prove safe. The model cannot learn an action whose
+     benefit never occurs in training data. This is a *coverage* gap in the workload
+     generator, not a model failure.
+  2. STOP is 21% of OOD labels vs 5% of train labels. Hand-written kernels reach a fixed point
+     sooner.
+  3. OOD programs are about 50× larger (EXP-007), which moves the size features outside the
+     training range.
+- **Feature importance** (random-forest impurity, biased toward groups with many features):
+  opcodes 0.57, opportunities 0.18, cfg 0.08, size 0.06, loops 0.06, memory 0.04, calls 0.02.
+  The causal test is the EXP-009 ablation.
+- **Next action:** EXP-005 asks whether the model helps *end to end*. EXP-009 measures feature
+  groups and distribution shift.
 
 ## EXP-005 — Does ML-guided scheduling beat fixed pipelines end to end?
 
@@ -275,6 +338,60 @@ These are tiny-data results and are **not evidence** for any hypothesis.
 - **Metrics:** geomean final/initial interpreter cost, best and worst ratio, passes, decision
   ms, schedule ms. Native runtime is measured separately for the benchmark kernels (EXP-002
   covers the cost↔native relation).
+- **Run:** commit `94b3649`, server. Same cached dataset as EXP-004. Every final program's
+  output was checked (0 mismatches). Curated results are in `experiments/EXP-005-ml-scheduling/`.
+- **Results** (geomean final/initial interpreter cost; lower is better):
+
+  | policy | generated test (100) | benchmarks (10) | examples (7) | size ratio (all) | passes | decision ms |
+  |---|---:|---:|---:|---:|---:|---:|
+  | oracle-greedy | **0.553** | **0.741** | **0.825** | 0.320 | 7.1 | 2,650 |
+  | O2 | 0.558 | **0.741** | 0.828 | **0.288** | 12.0 | 0 |
+  | random-k12 (seeds 0/1/2) | 0.571 / 0.600 / 0.624 | 0.856 / 0.829 / 0.850 | 0.919 / 0.919 / 0.871 | 0.34–0.43 | 12.0 | 0 |
+  | model (GBDT) | 0.580 | 0.815 | 0.867 | 0.343 | 8.1 | 1,086 |
+  | frequency | 0.582 | 0.747 | 0.838 | 0.361 | 11.0 | 0 |
+  | O1 | 0.602 | 0.925 | 0.942 | 0.397 | 5.0 | 0 |
+
+- **Hypotheses.**
+  - **H1 rejected:** the model is *worse* than O2 on generated test programs (0.580 vs 0.558).
+    It was worse than O2 by > 1% on 35 programs and better on 12.
+  - **H2 rejected:** the model does not close the O2 → oracle gap; it lands outside it.
+  - **H3 supported:** on hand-written programs the model is 10% (benchmarks) and 5% (examples)
+    worse than O2.
+  - **H4 rejected:** the model's decisions cost 1.1 s per program, only 2.4× cheaper than the
+    oracle; the model's total schedule time is 12× that of O2 (1,166 vs 96 ms).
+- **Diagnosis** (per-program analysis of `outcomes.json`):
+  1. **There is almost no headroom.** O2 is within 1.0% of the greedy oracle on generated
+     programs and identical to it on benchmarks. A one-step-greedy learner can gain at most
+     about 1% over O2 here.
+  2. **Regret wins did not turn into schedule wins.**
+     - The model is > 1% worse than the oracle on 43/100 programs while using as many passes
+       (8.1 vs 8.2), so the problem is not stopping early.
+     - It under-selects `licm`: the first action was `licm` 3 times, against 19 times for the
+       oracle.
+     - It omits late `simplify`/`cse`/`constfold` clean-ups.
+     - Small per-step regrets compound over 8–12 greedy steps. This is exactly why per-decision
+       accuracy is not compiler performance.
+  3. **O2 beats the greedy oracle on 9 of 100 programs.** A fixed order sometimes wins through
+     lookahead, which is evidence of non-greedy structure. That is the gap RL can target
+     (EXP-006).
+  4. **Where the overhead comes from:**
+     - feature extraction takes about 4 ms;
+     - a single-row `predict_proba` of scikit-learn's HistGradientBoosting (200 iterations ×
+       12 classes = 2,400 trees) takes 24–50 ms on the server, depending on OpenMP threads;
+     - IR hashing and Python overhead make up the rest.
+
+     A compiled tree ensemble would be far cheaper. That was not done, and the reported
+     overhead is what was measured. It does not change the conclusion: even at zero overhead
+     the model loses to O2 on quality.
+- **Interpretation (negative result):**
+  - In this compiler, with 11 passes and a 12-pass budget, the hand-written O2 pipeline is
+    already near the greedy optimum.
+  - A supervised imitation of the greedy oracle with 61 static features is measurably worse
+    than O2, and much more expensive.
+  - The project's honest answer to research question 1 at the interpreter-cost level is **no**.
+- **Next action:**
+  - EXP-006 asks whether RL's lookahead finds the non-greedy wins in (3).
+  - EXP-008 checks the same policies on native time.
 
 ## EXP-006 — Does a DQN agent beat greedy and fixed baselines?
 

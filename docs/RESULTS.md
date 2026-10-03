@@ -54,3 +54,41 @@ Data: `experiments/EXP-007-dataset-validation/report.json`.
 | STOP share of labels, train vs OOD | 6% vs 21% |
 
 The first (local) validation attempt found that 10% of training programs trapped; fixed by D-036.
+
+## EXP-004 — Next-pass prediction from static IR features (Phase 7)
+
+**Setup:** 400/100/100 generated programs (2,966/736/734 states) + 17 hand-written OOD programs
+(113 states); model selected on validation regret; commit `94b3649`. Data:
+`experiments/EXP-004-pass-prediction/`.
+
+| split | model | mean regret | near-optimal | accuracy |
+|---|---|---:|---:|---:|
+| test | gradient boosting (selected) | **0.0152** | 0.620 | 0.525 |
+| test | majority class | 0.0670 | 0.290 | 0.213 |
+| OOD | gradient boosting | 0.0277 | 0.513 | 0.327 |
+| OOD | majority class | **0.0269** | 0.478 | 0.248 |
+
+- In distribution, the model has 4.4× lower regret than the majority baseline.
+- **Out of distribution it is no better than the majority baseline.** The main cause is
+  coverage: `bce` is the best pass in 10 of 113 OOD states but never in training, because the
+  generator never emits induction-variable array indexing.
+
+## EXP-005 — End-to-end ML-guided scheduling vs fixed pipelines (Phase 7–8) — negative result
+
+**Setup:** greedy application of the EXP-004 model, budget 12 passes, all outputs checked;
+geomean final/initial interpreter cost. Data: `experiments/EXP-005-ml-scheduling/`.
+
+| policy | generated test (100) | benchmarks (10) | examples (7) | decision ms / program |
+|---|---:|---:|---:|---:|
+| oracle-greedy (upper bound for greedy) | 0.553 | 0.741 | 0.825 | 2,650 |
+| **O2** | **0.558** | **0.741** | **0.828** | 0 |
+| model (GBDT) | 0.580 | 0.815 | 0.867 | 1,086 |
+| frequency order | 0.582 | 0.747 | 0.838 | 0 |
+| best of 3 random 12-pass schedules | 0.571 | 0.829 | 0.871 | 0 |
+
+- **The learned scheduler does not beat O2. It is 4% worse on generated programs and 10% worse
+  on benchmarks, at about 1 s of decision time per program.**
+- O2 is within 1% of the greedy oracle, so the headroom for any one-step-greedy policy is about
+  1%.
+- O2 beats the greedy oracle on 9/100 programs, which is evidence that some gains need
+  lookahead (EXP-006).

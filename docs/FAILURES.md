@@ -345,8 +345,10 @@ Template:
   2. `IRParseError.__reduce__` keeps the exception picklable with its message.
   3. The pass differential tests now also check `format(parse(format(M))) == format(M)` after
      every pipeline. Regression tests cover the negative factor, the sanitizer and pickling.
-- **Did it work?** The regression test fails on the old source and passes on the new one. The
-  full dataset build then completed (see EXP-004).
+- **Did it work?** Yes:
+  - The regression test fails on the old source and passes on the new one.
+  - Rerunning the debug script at commit `94b3649` found 0 failures in 600 programs.
+  - The full EXP-004 build then completed.
 - **Lesson:**
   - A secondary representation (here, IR text) is only as reliable as the tests that exercise
     it *after every transformation*, not just after lowering.
