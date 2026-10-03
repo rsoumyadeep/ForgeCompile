@@ -1,7 +1,7 @@
 # Architecture
 
-> **Status:** Phase 0. This describes the *planned* architecture and what exists today. Each
-> component section is filled in when its phase lands.
+> **Status:** all components exist (Phases 0–9). Each section describes what is implemented,
+> with links to the detailed design documents.
 
 ## Pipeline
 
@@ -24,7 +24,7 @@ directly from text.
 | Package | Phase | Responsibility | Status |
 |---------|-------|----------------|--------|
 | `utils/` | 0 | logging, environment capture, experiment runs | ✅ |
-| `cli/` | 0+ | `forgecompile` command; gains a subcommand per phase | ✅ (`info`, `lex`, `parse`, `check`) |
+| `cli/` | 0+ | `forgecompile` command (`info lex parse check ir run passes opt llvm build bench`) | ✅ |
 | `driver.py` | 2+ | runs pipeline stages in order (`check_source`, later lowering/optimization/codegen) | ✅ |
 | `diagnostics.py` | 1 | `Span`, `SourceFile`, `Diagnostic`, `CompileError`, rustc-style rendering | ✅ |
 | `frontend/` | 1 | tokens, lexer, parser (recursive descent + Pratt, panic-mode recovery) | ✅ |
@@ -37,9 +37,9 @@ directly from text.
 | `testing/` | 3 | random well-typed terminating program generator | ✅ |
 | `optimization/` | 4 | pass interface and registry, pass manager (verify after each pass), presets, utilities, 11 passes | ✅ |
 | `backend/` | 5 | LLVM IR emission + llvmlite verification, zig cc build/run, C runtime | ✅ |
-| `benchmarks` (runner) | 6 | measurement harness | ⏳ |
-| `ml/` | 7 | features, datasets, models, baselines | ⏳ |
-| `rl/` | 8–9 | environment, agents, training | ⏳ |
+| `benchmarking/` | 6 | benchmark suite loader, correctness-gated native timing runner, statistics, reports | ✅ |
+| `ml/` | 7 | IR features, oracle-labelled datasets, splits/caching, models, policies, end-to-end evaluation | ✅ |
+| `rl/` | 8–9 | pass-scheduling MDP environment, NumPy Double DQN, parallel training jobs | ✅ |
 
 ## Cross-cutting infrastructure (exists)
 
@@ -117,7 +117,54 @@ optimized SSA IR ──emit_module──► LLVM IR text ──verify_llvm (llvm
 - LLVM defaults to `-O0` so measurements isolate ForgeCompile's passes (D-028).
 - See [LLVM_BACKEND.md](LLVM_BACKEND.md).
 
+## Benchmarking (Phase 6)
+
+```
+benchmarks/*.mini ──load_suite──► Benchmark(small/large instance)
+   run_suite(benchmarks, configs):  small: interpreter + native output must match (gate)
+                                    large: build once, warm up, interleaved seeded rounds
+                                    ──► BenchRecord(static, interpreter, native times) ──► reports
+```
+
+- One `BenchConfig` = (name, ForgeCompile pass list, LLVM level).
+- See [THEORY §12](THEORY.md#12-measuring-performance) and `benchmarks/README.md`.
+
+## ML-guided pass selection (Phase 7)
+
+```
+generator seeds ──program_splits──► train / val / test (generated) + ood (hand-written)
+   trajectory(): at each state, apply every pass to a copy (clone via print/parse),
+                 run the IR interpreter ──► StateRecord(features φ(M) ∈ ℝ⁶¹, outcome table, label)
+   build_dataset() ──cache (config + src tree hash)──► records ──select_model (val regret)──►
+   TrainedModel.rank(φ) ──ModelPolicy──► schedule(policy, module) ──evaluate_policies (outputs checked)
+```
+
+- Baselines: `FixedPipelinePolicy` (O1/O2/frequency), `RandomPolicy`, `OraclePolicy` (greedy
+  upper bound).
+- See [ML_GUIDED_OPTIMIZATION.md](ML_GUIDED_OPTIMIZATION.md).
+
+## RL pass scheduling (Phases 8–9)
+
+```
+PassSchedulingEnv(train programs):  reset() ──► o₀ = [φ(M₀), 1, 0…0] ∈ ℝ⁷⁴
+   step(a): M' = pass_a(M) (verified; output re-checked) ──► r = ΔC/C₀ (+ w_s ΔS/S₀) − λ
+DQNAgent (NumPy MLP 74→128→128→12, replay, target net, Double DQN)
+run_training_job ──► best-validation checkpoint ──► DQNPolicy ──► evaluate_policies
+```
+
+- Seeds and ablation conditions train in parallel processes, one cost cache per process.
+- See [RL_FORMULATION.md](RL_FORMULATION.md).
+
+## Experiments
+
+Every experiment is one script, `experiments/EXP-NNN-*/run.py`. It creates an `ExperimentRun`
+(config, seed, environment, git commit, status), writes raw results to the git-ignored
+`experiments/runs/`, and writes curated copies next to the script. Long runs go through
+`scripts/server/launch.sh` (tmux, resource check, clean-tree check). See
+[EXPERIMENTS.md](EXPERIMENTS.md).
+
 ## Key design choices
 
 See [DECISIONS.md](DECISIONS.md). In short: Python (D-001), LLVM via llvmlite + zig cc
-(D-002), interpreter-based deterministic cost metric (D-006, to be validated).
+(D-002), interpreter-based deterministic cost metric (D-006, tested by EXP-002), NumPy-only
+ML/RL (D-007), server-first execution with GitHub as the source of truth (D-034).
