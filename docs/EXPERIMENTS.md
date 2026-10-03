@@ -459,6 +459,10 @@ These are tiny-data results and are **not evidence** for any hypothesis.
   - EXP-006 is kept exactly as pre-registered and run.
   - The fair-wrapper comparison and a scaled-up training run are the pre-registered
     follow-up EXP-012.
+- **Reproducibility caveat (found later, F-017):** this run predates the per-process thread
+  caps, so NumPy's BLAS ran multithreaded. Multithreaded BLAS can change floating-point
+  summation order, so retraining the DQN seeds reproduces these curves only up to small
+  numerical differences. The tree models (oracle labels, GBDT) are unaffected.
 - **Next action:** EXP-012 (no-retry wrapper for DQN, validated on validation programs first,
   then 4× more training). EXP-010 (λ, γ, action space) tests whether a larger action gap
   (λ = 0.01) helps.

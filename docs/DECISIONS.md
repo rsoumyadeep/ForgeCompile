@@ -575,6 +575,9 @@ one and links back to it.
   to 16 parallel processes, after the sanity runs and the resource check.
 - **Constraint:** Native **timing** experiments (EXP-002/003/008) still run alone, with no
   other heavy job of ours running, because parallel load would add timing noise.
+- **Amendment (F-017):** "workers" means *processes with one thread each*. `launch.sh` caps
+  OpenMP/BLAS threads per process (`FORGE_THREADS`, default 1), and models use `n_jobs=1`.
+  Without that, 16 workers became about 1,000 threads.
 
 ## D-039 — The DQN is implemented in NumPy; no deep-learning framework
 
