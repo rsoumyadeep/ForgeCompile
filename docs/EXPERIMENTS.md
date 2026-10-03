@@ -230,7 +230,7 @@ Where each question is answered:
     - `cse` is also badly mispredicted. `inline` is only moderately off.
     - The cost model *underestimates* `simplifycfg` (predicted −1.5%, measured −8.7%).
 - **Interpretation:**
-  1. **ForgeCompile O2 makes native code about 15% faster at LLVM -O0** (geomean, 8 of 10
+  1. **ForgeCompile O2 makes native code about 15% faster at LLVM -O0** (geomean, 7 of 10
      kernels faster, up to 1.5× on matmul), but less than the interpreter predicts (26%).
   2. The model fails where the cost of an IR instruction depends on code generation. At LLVM
      -O0 every value lives in a stack slot, so removing or hoisting cheap register arithmetic

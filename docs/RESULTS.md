@@ -191,7 +191,7 @@ gate; server; commit `7ff2e07`. A new run replaces the aborted laptop attempt (F
 
 | pipeline | predicted ratio (geomean) | measured native ratio (geomean) |
 |---|---:|---:|
-| O2 | 0.741 | **0.849** (8/10 kernels faster; matmul 0.668; arith_hash 1.088, loop_nest 1.029 slower) |
+| O2 | 0.741 | **0.849** (7/10 kernels faster, call_fib unchanged; matmul 0.668; arith_hash 1.088, loop_nest 1.029 slower) |
 | licm | 0.871 | 1.004 |
 | strength | 0.942 | 1.008 (worst 1.190) |
 | simplifycfg | 0.985 | 0.913 |
