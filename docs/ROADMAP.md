@@ -19,7 +19,7 @@ Status legend: ✅ done · 🔨 in progress · ⏳ not started · ⚠️ done wi
 | 8 | RL environment | ✅ | [PHASE_8](phases/PHASE_8.md) |
 | 9 | RL optimization agent | ⚠️ done; negative result (EXP-006, EXP-012) | [PHASE_9](phases/PHASE_9.md) |
 | 10 | Experimental study + ablations | ✅ (mostly negative answers, quantified) | [PHASE_10](phases/PHASE_10.md) |
-| 11 | Final hardening + audit | 🔨 | — |
+| 11 | Final hardening + audit | ✅ | [PHASE_11](phases/PHASE_11.md) |
 
 ---
 
@@ -181,7 +181,10 @@ discrete-action method). Training configs, seeds, reward curves, held-out evalua
 **Objective:** answer the research questions in `docs/EXPERIMENTS.md`. Ablations cover
 feature groups, reward definitions, action spaces and benchmark distributions.
 
-## Phase 11 — Hardening
+## Phase 11 — Hardening ✅
+
+**Outcome (2026-10-03):** every item of the final audit checklist passes. See the Phase 11
+report, which includes the fresh-clone reproduction from GitHub.
 
 **Objective:** a fresh-clone reproduction of the main results, cleanup, profiling, a dependency
 audit, `INTERVIEW_QUESTIONS.md`, `CV_DESCRIPTION.md`, and the final audit checklist.

@@ -11,10 +11,11 @@ MiniLang source ─► lexer ─► parser ─► AST ─► semantic analysis
         ─► LLVM IR ─► native executable
 ```
 
-> **Project status:** complete through Phase 10. The compiler (Phases 0–5), the benchmark
-> harness (6), supervised pass selection (7), and the RL environment and Double-DQN agent (8–9)
-> are implemented, tested (772 tests) and evaluated on a lab server (Phase 10). Phase 11 is the
-> final audit. See [docs/ROADMAP.md](docs/ROADMAP.md). This README describes only what exists.
+> **Project status:** complete (Phases 0–11, 2026-10-03). The compiler (Phases 0–5), the
+> benchmark harness (6), supervised pass selection (7), and the RL environment and Double-DQN
+> agent (8–9) are implemented, tested (772 tests) and evaluated on a lab server (10). The final
+> audit, including a fresh-clone reproduction, passed (11). See [docs/ROADMAP.md](docs/ROADMAP.md).
+> This README describes only what exists.
 
 ## Results in brief
 
