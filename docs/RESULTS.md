@@ -4,6 +4,28 @@ Only measured results appear here. Each one is linked to its experiment in
 [EXPERIMENTS.md](EXPERIMENTS.md) and to a curated results directory with full metadata (git
 commit, clean/dirty flag, environment, seed). Negative results are included.
 
+## Summary: the ten research questions
+
+| # | Question | Answer (evidence) |
+|---|---|---|
+| 1 | Does ML-guided scheduling beat fixed pipelines? | **No.** The supervised model loses to O2 on interpreter cost (0.580 vs 0.558, EXP-005) and ties within noise natively (0.855 vs 0.850, EXP-008). |
+| 2 | Does RL beat heuristic scheduling? | **No.** DQN is worse than O2, the supervised model and the greedy oracle on every program group (EXP-006). A no-retry wrapper and 4× training do not change that (EXP-012). |
+| 3 | On which workload classes does it help? | Only where the proxy misleads O2: model and DQN are 32% faster than O2 natively on `loop_nest` and 8% on `arith_hash`, because they avoid strength reduction (EXP-008). They are 12–17% worse on stencil, sieve and memory_sort. |
+| 4 | When does it fail? | Out of distribution (EXP-004: no better than the majority baseline). On passes absent from training (`bce`: 0 training labels). Through compounding greedy errors (EXP-005). When the action gap is tiny (DQN repeats no-op passes, EXP-006). |
+| 5 | Does quality justify the inference overhead? | **No.** Decision time is 3 ms (DQN) to 93 ms (model) to 12 s (oracle) per program, against 2.3 ms for O2's *entire* pass pipeline on the kernels, with no native gain (EXP-008). |
+| 6 | Does the learned policy generalize to unseen programs? | To unseen generated programs, partly (regret 4.4× below majority, EXP-004). To hand-written kernels, no (OOD regret ≈ majority). |
+| 7 | How sensitive is it to the benchmark distribution? | Asymmetric. Training on the richer `loop_heavy` profile transfers to `default`; the reverse costs 6% end to end (EXP-009). |
+| 8 | What happens when the action space changes? | It matters more than anything else tested. Removing copyprop hurts even the oracle (benchmarks 0.856 vs 0.741). A smaller action space (O1) halves DQN's gap to its oracle (EXP-010). |
+| 9 | How much training data is required? | Very little. The learning curve is flat from 25 to 400 programs (EXP-009). |
+| 10 | What happens when reward weights change? | λ and γ barely matter. A code-size weight works as intended: static size ratio 0.36 vs 0.43 at no cost penalty (EXP-010). |
+
+**Why the answers are mostly negative:**
+- Even beam search over all 12-pass schedules finds only about 1% headroom above O2 on the
+  interpreter cost (EXP-011).
+- That cost is itself only weakly aligned with native time: Spearman 0.29 (EXP-002).
+- Pass *scheduling* in this compiler is a second-order effect. ForgeCompile O2 is 1.18× faster
+  than no passes at LLVM -O0, while LLVM -O2 is 7.4× faster (EXP-003).
+
 ## EXP-001 — Per-pass effects on IR-level work (Phase 4)
 
 **Setup:** 7 example programs and 200 generated programs (seeds 0–199). Metrics come from the
