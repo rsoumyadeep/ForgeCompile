@@ -614,3 +614,23 @@ one and links back to it.
   under `src/` could be imported, so they count. New result files cannot change behaviour.
 - **Unchanged:** `scripts/server/launch.sh` still refuses to *start* on any uncommitted change,
   including untracked files.
+
+## D-006 (validation result) — The interpreter cost is a weak proxy; kept, with the limitation documented
+
+- **Date:** 2026-10-03 (Phase 6 experiments)
+- **Evidence:** EXP-002, 120 (kernel, pipeline) points at LLVM -O0.
+  - Pooled Spearman 0.29 between predicted and measured ratios.
+  - Plain instruction count does as well as the latency-weighted cost.
+  - Systematic errors: loop-code motion (licm, strength) is overrated; branch removal
+    (simplifycfg) is underrated.
+- **Alternatives considered:**
+  - (a) Native time as the reward: noisy (CV up to 10% on a shared machine) and roughly 1,000×
+    more expensive per evaluation.
+  - (b) A learned cost model trained on native timings: a project of its own.
+  - (c) Keep the interpreter cost, document the limitation, and re-measure the final schedules
+    natively.
+- **Chosen:** (c). The ML/RL experiments had already run on the proxy, and their conclusions
+  are stated as conclusions *about the proxy*. EXP-008 re-measured the learned schedules
+  natively and found the same overall conclusion: none beats O2. It also found one kernel where
+  the proxy's error favoured the learned policies.
+- **Consequence:** (a)/(b) are the first item of future work (ROADMAP).

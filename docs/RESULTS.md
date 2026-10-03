@@ -30,7 +30,9 @@ commit, clean/dirty flag, environment, seed). Negative results are included.
 
 **Setup:** 7 example programs and 200 generated programs (seeds 0–199). Metrics come from the
 deterministic IR interpreter: dynamic instruction count, and a weighted cost under *assumed*
-latencies. These are **not** native runtimes; Phase 6 will measure those. Data:
+latencies. These are **not** native runtimes. *(Update: the native measurements are EXP-002/003
+below. LICM and strength reduction, which look good here, give no native gain at LLVM -O0.)*
+Data:
 `experiments/EXP-001-pass-effects/results.md` (run 2, commit `453feab`).
 
 Geometric-mean ratio, optimized / unoptimized (lower is better):

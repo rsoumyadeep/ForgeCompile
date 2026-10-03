@@ -153,7 +153,9 @@ The verifier runs after lowering, after SSA construction and, from Phase 4, afte
 - It counts every executed instruction by opcode and computes a weighted **cost**
   (`DEFAULT_COST_MODEL`, rough x86-64 latencies). This is the deterministic optimization
   signal planned in DECISIONS D-006. *Whether the cost correlates with native runtime is an
-  open question that Phase 6 will measure.*
+  open question that Phase 6 will measure.* *(Update, 2026-10-03: EXP-002 measured a pooled Spearman
+  correlation of only 0.29 with native time at LLVM -O0, and the weights add nothing over plain
+  instruction counts. See RESULTS.md.)*
 - It reports compiler bugs as `InterpreterError`, distinct from MiniLang runtime traps:
   - an observable use of `undef`;
   - reading an unassigned register;
