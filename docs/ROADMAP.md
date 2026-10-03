@@ -14,10 +14,10 @@ Status legend: ✅ done · 🔨 in progress · ⏳ not started · ⚠️ done wi
 | 3 | IR, reference interpreter, CFG, SSA | ✅ | [PHASE_3](phases/PHASE_3.md) |
 | 4 | Classical optimization engine | ✅ | [PHASE_4](phases/PHASE_4.md) |
 | 5 | LLVM backend + native executables | ✅ | [PHASE_5](phases/PHASE_5.md) |
-| 6 | Benchmarking infrastructure | ⏳ | — |
-| 7 | ML-based pass selection | ⏳ | — |
-| 8 | RL environment | ⏳ | — |
-| 9 | RL optimization agent | ⏳ | — |
+| 6 | Benchmarking infrastructure | 🔨 code done; EXP-002/003 pending on the server | — |
+| 7 | ML-based pass selection | ⚠️ done; negative end-to-end result | [PHASE_7](phases/PHASE_7.md) |
+| 8 | RL environment | 🔨 implemented and tested; validated by EXP-006 | — |
+| 9 | RL optimization agent | 🔨 EXP-006 running | — |
 | 10 | Experimental study + ablations | ⏳ | — |
 | 11 | Final hardening + audit | ⏳ | — |
 
@@ -144,9 +144,15 @@ types.
 **Acceptance:** two runs of the same configuration agree within a measured noise band, and the
 noise is documented.
 
-## Phase 7 — ML-based pass selection
+## Phase 7 — ML-based pass selection ⚠️
 
 **Objective:** a supervised model that predicts a beneficial next pass from IR features.
+
+**Outcome (2026-10-03):**
+- The data were validated (EXP-007).
+- The model beats the majority baseline in distribution (EXP-004) but not on OOD programs.
+- End to end it is *worse* than O2 (EXP-005), and O2 is within 1% of the greedy oracle.
+- This negative result is documented in the phase report.
 
 - Feature extractor (instruction histogram, CFG/loop/memory/call statistics).
 - Labels come from real compiler experiments. Splits are made per program to avoid leakage.
