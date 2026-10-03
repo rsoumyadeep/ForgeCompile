@@ -11,10 +11,12 @@ MiniLang source ─► lexer ─► parser ─► AST ─► semantic analysis
         ─► LLVM IR ─► native executable
 ```
 
-> **Project status:** Phases 0–5 are complete: foundation, MiniLang frontend, semantic
-> analysis, SSA IR, 11 optimization passes (EXP-001), and the LLVM backend producing native
-> executables. Benchmarking and the ML/RL components are not implemented yet. See [docs/ROADMAP.md](docs/ROADMAP.md). This README only describes
-> things that already exist; nothing here is aspirational.
+> **Project status:** the compiler (Phases 0–5), the benchmark harness (Phase 6), supervised
+> pass selection (Phase 7), and the RL environment and Double-DQN agent (Phases 8–9) are
+> implemented and tested. Experiments are running on a lab server; every number in
+> [docs/RESULTS.md](docs/RESULTS.md) comes from a recorded run. So far, the learned
+> supervised scheduler does **not** beat the hand-written O2 pipeline (EXP-005). See
+> [docs/ROADMAP.md](docs/ROADMAP.md). This README describes only what exists.
 
 ## Quick start
 
@@ -32,9 +34,11 @@ uv run forgecompile ir examples/fibonacci.mini              # SSA IR
 uv run forgecompile run --stats examples/fibonacci.mini     # execute + instruction counts
 uv run forgecompile opt -O 2 --stats examples/matmul.mini   # optimized IR + per-pass report
 uv run forgecompile build -O 2 -o matmul.exe examples/matmul.mini  # native executable (via LLVM)
+uv run forgecompile run --schedule oracle examples/matmul.mini     # per-program pass schedule
+uv run python scripts/e2e_sanity.py                                # whole ML/RL pipeline, ~30 s
 ```
 
-First measured results (IR-interpreter cost, not native runtime yet): [docs/RESULTS.md](docs/RESULTS.md).
+Measured results: [docs/RESULTS.md](docs/RESULTS.md).
 
 See [docs/HOW_TO_RUN.md](docs/HOW_TO_RUN.md) for details.
 
@@ -44,8 +48,8 @@ See [docs/HOW_TO_RUN.md](docs/HOW_TO_RUN.md) for details.
 |------|----------|
 | `src/forgecompile/` | Compiler package (one sub-package per pipeline stage, added phase by phase) |
 | `tests/` | Unit, integration and end-to-end tests |
-| `benchmarks/` | MiniLang benchmark programs + runner (Phase 6) |
-| `experiments/` | Experiment definitions; `runs/` holds per-run outputs (git-ignored) |
+| `benchmarks/` | MiniLang benchmark kernels (the runner is `src/forgecompile/benchmarking/`) |
+| `experiments/` | One script per experiment plus its curated results; `runs/` holds raw per-run outputs (git-ignored) |
 | `scripts/` | Developer and reproducibility scripts |
 | `examples/` | Example MiniLang programs |
 | `docs/` | Design docs, theory, decision/failure/experiment logs, study guide |
@@ -58,7 +62,8 @@ See [docs/HOW_TO_RUN.md](docs/HOW_TO_RUN.md) for details.
   [RL_FORMULATION](docs/RL_FORMULATION.md)
 - **Evidence:** [EXPERIMENTS](docs/EXPERIMENTS.md) · [RESULTS](docs/RESULTS.md) ·
   [FAILURES](docs/FAILURES.md) · [DECISIONS](docs/DECISIONS.md)
-- **Learning:** [THEORY](docs/THEORY.md) · [HOW_TO_STUDY](docs/HOW_TO_STUDY.md)
+- **Learning:** [THEORY](docs/THEORY.md) · [HOW_TO_STUDY](docs/HOW_TO_STUDY.md) ·
+  [INTERVIEW_QUESTIONS](docs/INTERVIEW_QUESTIONS.md)
 - **Process:** [ROADMAP](docs/ROADMAP.md) · [DEVELOPMENT](docs/DEVELOPMENT.md) ·
   [HOW_TO_RUN](docs/HOW_TO_RUN.md) · [phase reports](docs/phases/)
 
