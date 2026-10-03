@@ -546,3 +546,32 @@ one and links back to it.
   - Programs that print nothing (about 1%) are kept and reported. Deleting their dead work is
     a correct optimization, not a reward exploit, because the observable behaviour (exit
     status) is still checked.
+
+## D-037 — Dataset cache keyed by the compiler's source tree, not the commit
+
+- **Date:** 2026-10-03
+- **Context:** The cache key included the git commit, so every documentation or
+  experiment-script commit forced a full dataset rebuild (about 10 minutes for 600 programs)
+  in each later experiment.
+- **Chosen:**
+  - The key is the configuration plus `git rev-parse HEAD:src/forgecompile`, i.e. the tree
+    hash of the compiler package.
+  - Nothing is cached while that tree has uncommitted changes.
+- **Why:** Labels are a function of the compiler's code and the configuration only. Keying on
+  exactly that input keeps the cache correct and stops needless rebuilds.
+- **Trade-off:** A behaviour change that lives outside `src/forgecompile` would not invalidate
+  the cache. Today that set is empty: the benchmark kernels used as OOD programs live in
+  `benchmarks/`, but the dataset reads them through the package, and their text is part of the
+  dataset content, not the key. If they change, delete `experiments/data/`. That rule is
+  written in HOW_TO_RUN.md.
+
+## D-038 — Worker counts above the resource script's default cap
+
+- **Date:** 2026-10-03
+- **Context:** `scripts/resources.py` caps its recommendation at 8 workers by default. The
+  server had about 48 idle hardware threads (another user's jobs held about 15) and 494 GB of
+  free RAM. Dataset workers use under 0.5 GB each.
+- **Chosen:** Interpreter-based experiments (dataset builds, ablations, DQN seeds) may use up
+  to 16 parallel processes, after the sanity runs and the resource check.
+- **Constraint:** Native **timing** experiments (EXP-002/003/008) still run alone, with no
+  other heavy job of ours running, because parallel load would add timing noise.

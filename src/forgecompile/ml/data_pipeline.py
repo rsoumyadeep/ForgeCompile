@@ -16,9 +16,10 @@ the dataset seed and the program's identity. Results therefore do not depend on
 how programs are distributed over worker processes.
 
 **Caching.** Datasets are cached as JSON-lines under ``experiments/data/``
-(git-ignored). The cache key includes the configuration *and* the git commit,
-so a changed compiler never silently reuses stale labels. Without a clean
-commit, nothing is cached.
+(git-ignored). The cache key includes the configuration *and* the git tree hash
+of ``src/forgecompile``, so a changed compiler never silently reuses stale
+labels, while documentation or experiment-script commits do not force a
+rebuild. With uncommitted compiler changes, nothing is cached.
 """
 
 from __future__ import annotations
@@ -40,7 +41,7 @@ from forgecompile.ml.dataset import (
     trajectory,
 )
 from forgecompile.testing.program_generator import PROFILES, generate_program
-from forgecompile.utils.environment import git_revision
+from forgecompile.utils.environment import source_tree_revision
 
 REPO = Path(__file__).resolve().parents[3]
 DEFAULT_CACHE_DIR = REPO / "experiments" / "data"
@@ -60,10 +61,10 @@ class DatasetConfig:
     profile: str = "loop_heavy"  # generator profile of train/val/test (PROFILES)
 
     def key(self) -> str:
-        revision = git_revision(REPO)
-        commit = revision["commit"] if revision and not revision["dirty"] else None
-        payload = json.dumps({"config": asdict(self), "commit": commit}, sort_keys=True)
-        return hashlib.sha1(payload.encode()).hexdigest()[:16] if commit else ""
+        """Cache key: configuration + the compiler's source tree hash ("" = do not cache)."""
+        tree = source_tree_revision(REPO)
+        payload = json.dumps({"config": asdict(self), "src_tree": tree}, sort_keys=True)
+        return hashlib.sha1(payload.encode()).hexdigest()[:16] if tree else ""
 
 
 def program_splits(config: DatasetConfig) -> dict[str, list[ProgramSpec]]:

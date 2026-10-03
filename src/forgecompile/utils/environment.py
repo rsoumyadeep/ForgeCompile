@@ -103,6 +103,17 @@ def git_revision(repo_dir: Path | None = None) -> dict[str, object] | None:
     return {"commit": commit, "dirty": bool(status)}
 
 
+def source_tree_revision(repo_dir: Path, subdir: str = "src/forgecompile") -> str | None:
+    """Git tree hash of ``subdir`` at HEAD, or None if it has uncommitted changes (or no git).
+
+    Unlike the commit hash, it changes only when the compiler's own code changes, so a
+    documentation-only commit does not invalidate caches derived from compiler behaviour.
+    """
+    if _run(["git", "status", "--porcelain", "--", subdir], cwd=repo_dir):
+        return None
+    return _run(["git", "rev-parse", f"HEAD:{subdir}"], cwd=repo_dir)
+
+
 def collect_environment(repo_dir: Path | None = None) -> dict[str, object]:
     """Return a JSON-serialisable description of the current environment."""
     return {

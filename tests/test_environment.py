@@ -38,3 +38,26 @@ def test_missing_zig_is_reported(monkeypatch: pytest.MonkeyPatch) -> None:
     status = environment.detect_zig()
     assert not status.available
     assert "ziglang" in (status.detail or "")
+
+
+def test_source_tree_revision_ignores_other_paths_and_detects_dirty_source(tmp_path: Path) -> None:
+    import subprocess
+
+    from forgecompile.utils.environment import source_tree_revision
+
+    def git(*args: str) -> None:
+        subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
+
+    git("init", "-q")
+    (tmp_path / "src" / "forgecompile").mkdir(parents=True)
+    (tmp_path / "src" / "forgecompile" / "a.py").write_text("x = 1\n")
+    (tmp_path / "README.md").write_text("docs\n")
+    git("add", "-A")
+    git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "one")
+    tree = source_tree_revision(tmp_path)
+    assert tree is not None
+    (tmp_path / "README.md").write_text("more docs\n")  # outside the source tree
+    git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-am", "docs")
+    assert source_tree_revision(tmp_path) == tree
+    (tmp_path / "src" / "forgecompile" / "a.py").write_text("x = 2\n")  # uncommitted source
+    assert source_tree_revision(tmp_path) is None
