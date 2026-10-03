@@ -37,6 +37,9 @@ import numpy as np
 from forgecompile.ir.function import Module
 from forgecompile.ml.features import feature_vector
 from forgecompile.rl.env import ENV_ACTIONS, PassSchedulingEnv
+from forgecompile.utils.logging import get_logger
+
+_log = get_logger("rl")
 
 
 @dataclass(frozen=True)
@@ -265,9 +268,20 @@ def train(
         ):
             score = float(validate(agent))
             log.validation.append((episode + 1, score))
-            if score < best_val and checkpoint is not None:
+            if score < best_val:
                 best_val = score
-                agent.save(checkpoint)
+                if checkpoint is not None:
+                    agent.save(checkpoint)
+            recent = log.episode_ratios[-validate_every:]
+            _log.info(  # continuous progress for long runs (one line per validation)
+                "episode %d steps %d epsilon %.3f train-ratio %.4f val %.4f best %.4f",
+                episode + 1,
+                agent.steps,
+                agent.epsilon(),
+                sum(recent) / len(recent),
+                score,
+                best_val,
+            )
     if agent.normalizer is None and warm_obs:
         # Training ended inside the warm-up (very short runs): fit on what was seen,
         # so the agent is still usable and savable.
