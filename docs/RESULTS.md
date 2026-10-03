@@ -130,3 +130,21 @@ deduplication), on 100 test + 17 OOD programs. Measurement only. Commit `dbabcbf
   12%), and never worse.
 - The learnable headroom in this action space is therefore tiny. That is the main reason the
   supervised (EXP-005) and RL (EXP-006) schedulers cannot beat O2.
+
+## EXP-012 — DQN follow-up: equal wrappers and 4× training (Phase 9) — negative result
+
+**Setup:** EXP-006 checkpoints re-evaluated with the supervised policy's no-retry rule (Part A).
+Then 3 seeds × 12,000 episodes, selected on validation with that rule (Part B). Commit
+`e37527c`. Data: `experiments/EXP-012-dqn-followup/`.
+
+| policy (generated test, geomean cost ratio) | plain | + no-retry |
+|---|---:|---:|
+| O2 | 0.558 | — |
+| EXP-006 DQN (seeds 0/1/2) | 0.632 / 0.660 / 0.641 | 0.609 / 0.625 / **0.589** |
+| scaled DQN, 4× training (seeds 0/1/2) | 0.650 / 0.679 / 0.681 | 0.604 / 0.632 / 0.631 |
+
+- The no-retry rule closes about a third of DQN's gap to O2.
+- **4× more training does not help:**
+  - the best validation checkpoints came from episodes 100, 1,800 and 1,800 of 12,000;
+  - scaled agents are no better than the EXP-006 agents.
+- No DQN variant beats O2. There were 0 invalid transformations in about 350k training steps.

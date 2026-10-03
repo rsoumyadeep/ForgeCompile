@@ -540,6 +540,53 @@ These are tiny-data results and are **not evidence** for any hypothesis.
   - H4: scaled DQN with the wrapper still does not beat O2 on generated test programs. EXP-011
     bounds what any schedule could gain.
 - **Configuration:** `experiments/EXP-012-dqn-followup/run.py --part both --workers 3`.
+- **Run:** commit `e37527c`, server, thread caps active (F-017).
+  - Part A took about 4 min.
+  - Part B: 3 seeds trained in parallel, 50–63 min each (111k–125k environment steps).
+  - 0 invalid transformations.
+  - Curated results, including the scaled checkpoints, are in
+    `experiments/EXP-012-dqn-followup/`.
+- **Part A results** (EXP-006 checkpoints; geomean cost ratio):
+
+  | policy | validation (100) | generated test | benchmarks | examples |
+  |---|---:|---:|---:|---:|
+  | O2 | **0.619** | **0.558** | **0.741** | **0.828** |
+  | seed 0 / +no-retry | 0.692 / 0.671 | 0.632 / 0.609 | 0.894 / 0.884 | 0.967 / 0.962 |
+  | seed 1 / +no-retry | 0.720 / 0.673 | 0.660 / 0.625 | 0.956 / 0.896 | 0.963 / 0.932 |
+  | seed 2 / +no-retry | 0.702 / 0.663 | 0.641 / 0.589 | 0.952 / 0.857 | 0.967 / 0.904 |
+
+- **Part B results** (scaled training; checkpoints selected with no-retry validation):
+
+  | policy | best validation (40) at episode | generated test | benchmarks | examples |
+  |---|---|---:|---:|---:|
+  | O2 | — | **0.558** | **0.741** | **0.828** |
+  | scaled seed 0 / +no-retry | 0.657 at 100 | 0.650 / 0.604 | 0.966 / 0.906 | 0.983 / 0.926 |
+  | scaled seed 1 / +no-retry | 0.661 at 1,800 | 0.679 / 0.632 | 0.928 / 0.813 | 0.958 / 0.860 |
+  | scaled seed 2 / +no-retry | 0.663 at 1,800 | 0.681 / 0.631 | 0.970 / 0.866 | 0.982 / 0.956 |
+
+- **Hypotheses.**
+  - **H1 supported:** the no-retry wrapper improves every EXP-006 checkpoint on validation, by
+    3.1%, 6.5% and 5.5% relative. It improves test results too, e.g. the best seed goes from
+    0.641 to 0.589.
+  - **H2 supported:** with the wrapper, the best EXP-006 checkpoint (0.589) is still 6% worse
+    than O2 on generated programs and 16% worse on benchmarks.
+  - **H3 rejected:** 4× more training did not help.
+    - The best validation checkpoints came from episodes **100, 1,800 and 1,800 of 12,000**.
+    - Validation in the last 10,000 episodes stayed at 0.68–0.72.
+    - With the same no-retry wrapper, the scaled agents (0.604 / 0.632 / 0.631) are no better
+      than the EXP-006 agents (0.609 / 0.625 / 0.589) on generated test programs.
+  - **H4 supported:** no scaled agent beats O2.
+- **Interpretation:**
+  - About a third of EXP-006's gap to O2 was the missing no-retry rule, an inference-time
+    wrapper rather than learning.
+  - The remaining gap does not shrink with more data. The selected checkpoints are close to
+    untrained networks, so the learned Q-values add little beyond "try passes in some order,
+    never repeat one".
+  - That is consistent with EXP-011: the value differences the agent must resolve are about
+    1% of cost, below the noise in its Q estimates.
+  - The DQN itself was checked on a two-step chain MDP that needs bootstrapping
+    (`test_dqn_bootstraps_delayed_reward_on_a_chain`), so a TD-update bug is unlikely to be
+    the explanation.
 
 ## EXP-009 — Ablations of the supervised scheduler (features, data size, distribution)
 
