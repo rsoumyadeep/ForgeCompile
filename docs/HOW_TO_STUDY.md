@@ -416,8 +416,10 @@ See [THEORY §12](THEORY.md#12-measuring-performance) and
   a noise band. Never claim effects inside that band.
 - *Why the geometric mean?* Speedups are ratios. An arithmetic mean of ratios is biased, and the
   result depends on which configuration is chosen as the baseline.
-- *Is your interpreter cost model valid?* That is exactly what EXP-002 measures. Quote the
-  measured correlation, not an assumption.
+- *Is your interpreter cost model valid?* Only weakly. EXP-002 measured a pooled Spearman of
+  0.29 against native time at LLVM -O0. The model overrates loop-code motion (licm predicted
+  −13%, measured +0.4%) and underrates branch removal. Plain instruction count does as well as
+  the latency-weighted cost.
 - *Why time at LLVM -O0?* To isolate ForgeCompile's effects (D-028). LLVM -O2 numbers are
   reported separately as a baseline.
 - *What surprised you?* The first-run penalty of new executables (F-014), and LLVM -O2 turning

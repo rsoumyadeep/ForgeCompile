@@ -485,9 +485,10 @@ A single number therefore means little. The questions are always "compared with 
 
 **Deterministic proxies.** Counting executed IR instructions (with or without per-opcode weights)
 is exact and repeatable, but it is only a *model* of time. Whether that model predicts native
-speedups is an empirical question, and EXP-002 measures it with rank correlation (Spearman) and
-linear correlation (Pearson). That matters because ML/RL rewards built on a bad proxy would
-optimize the wrong thing.
+speedups is an empirical question. EXP-002 measures it with rank correlation (Spearman) and
+linear correlation (Pearson), and finds the proxy weak (Spearman 0.29). That matters because
+ML/RL rewards built on a bad proxy optimize the wrong thing, which is why the final schedules
+were re-measured natively (EXP-008).
 
 **Two sizes of the same benchmark.** The Python interpreter is about 1,000× slower than native
 code. Each benchmark therefore has a small instance (interpreter) and a large one (native) that

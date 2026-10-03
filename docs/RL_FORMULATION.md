@@ -35,8 +35,8 @@ Let 𝒫 be a set of programs (the training split of generated programs).
 | **Termination** | `stop`; t = T (truncation, which is terminal because T−t is observed); or an invalid transformation (penalty −κ) |
 
 **Cost:**
-- C(M) is the IR-interpreter weighted cost of running M (EXP-002 measures how well it predicts
-  native time).
+- C(M) is the IR-interpreter weighted cost of running M. It predicts native time only weakly
+  (EXP-002: Spearman 0.29).
 - S(M) is the static instruction count.
 - The default weights are w_c = 1, w_s = 0, λ = 0.002 and κ = 1. Reward-weight sensitivity is
   a Phase 10 ablation.
@@ -83,7 +83,7 @@ limitation, discussed with the results.
 | Delete observable behaviour to save cost | Passes are semantics-preserving. The environment re-checks every step's output against the unoptimized program, and a violation is an *invalid transformation* (−κ, episode ends, counted). |
 | Oscillate between two states | The rewards telescope, so a cycle earns 0 − λ·length |
 | Pad with no-op passes | λ > 0 per pass |
-| Game the cost model (e.g. replace a mul with an add that is not cheaper natively) | A real risk, inherited from the proxy C. EXP-002 quantifies how well C tracks native time, and the final evaluation reports native timings too. |
+| Game the cost model (e.g. replace a mul with an add that is not cheaper natively) | A real risk, inherited from the proxy C. EXP-002 confirmed it: strength reduction is predicted −6% but measured +0.8%. EXP-008 therefore reports native timings of the learned schedules. |
 | Shrink one huge program and ignore the others | Rewards are normalized per program |
 
 Invalid transformations are measured and reported (the brief requires this). With correct passes

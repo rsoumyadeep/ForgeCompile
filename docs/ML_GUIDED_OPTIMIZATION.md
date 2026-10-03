@@ -35,8 +35,8 @@ interpreter:
     label(M) = argmin_pass C(pass(M))     if C(pass(M)) < C(M)
                stop                        otherwise
 
-No label is synthetic or guessed. C is the interpreter's weighted cost; EXP-002 measures how
-well it tracks native time. Ties (several passes reaching the same cost) are broken by name.
+No label is synthetic or guessed. C is the interpreter's weighted cost. EXP-002 found that it
+tracks native time only weakly (Spearman 0.29), so all labels are statements about this proxy. Ties (several passes reaching the same cost) are broken by name.
 This is why *regret*, not accuracy, is the primary metric (§5).
 
 **Which states are labelled.** An ε-greedy walk (ε = 0.3) from the unoptimized IR follows the
