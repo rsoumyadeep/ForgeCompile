@@ -1,0 +1,250 @@
+{
+  "all": {
+    "O2": {
+      "best_ratio": 0.05080213903743316,
+      "geomean_ratio": 0.5855796249004104,
+      "geomean_size_ratio": 0.2883201566440568,
+      "mean_decision_ms": 0.012122215026527898,
+      "mean_passes": 12.0,
+      "mean_schedule_ms": 75.91112314387121,
+      "n": 117.0,
+      "worst_ratio": 0.9999632206454777
+    },
+    "dqn-seed0": {
+      "best_ratio": 0.08823529411764706,
+      "geomean_ratio": 0.6673577993100454,
+      "geomean_size_ratio": 0.5034836201514146,
+      "mean_decision_ms": 24.481747436743134,
+      "mean_passes": 9.282051282051283,
+      "mean_schedule_ms": 105.36848059974803,
+      "n": 117.0,
+      "worst_ratio": 1.0
+    },
+    "dqn-seed1": {
+      "best_ratio": 0.06329113924050633,
+      "geomean_ratio": 0.6968478617867129,
+      "geomean_size_ratio": 0.44159871625669117,
+      "mean_decision_ms": 35.91138558237392,
+      "mean_passes": 11.948717948717949,
+      "mean_schedule_ms": 132.83823917293523,
+      "n": 117.0,
+      "worst_ratio": 1.0
+    },
+    "dqn-seed2": {
+      "best_ratio": 0.07219251336898395,
+      "geomean_ratio": 0.6798387877430918,
+      "geomean_size_ratio": 0.4478439196065306,
+      "mean_decision_ms": 38.700793378262055,
+      "mean_passes": 11.811965811965813,
+      "mean_schedule_ms": 134.36379506348226,
+      "n": 117.0,
+      "worst_ratio": 1.0
+    },
+    "model:gradient_boosting": {
+      "best_ratio": 0.06329113924050633,
+      "geomean_ratio": 0.6113756548630753,
+      "geomean_size_ratio": 0.34272018577770047,
+      "mean_decision_ms": 420.21670816595565,
+      "mean_passes": 8.068376068376068,
+      "mean_schedule_ms": 485.1131125469692,
+      "n": 117.0,
+      "worst_ratio": 0.999969350537898
+    },
+    "oracle-greedy": {
+      "best_ratio": 0.05080213903743316,
+      "geomean_ratio": 0.5803866659407289,
+      "geomean_size_ratio": 0.3199944651830384,
+      "mean_decision_ms": 2153.307270720844,
+      "mean_passes": 7.102564102564102,
+      "mean_schedule_ms": 2204.1677117196477,
+      "n": 117.0,
+      "worst_ratio": 0.9999632206454777
+    }
+  },
+  "benchmark": {
+    "O2": {
+      "best_ratio": 0.3615291464425632,
+      "geomean_ratio": 0.7409571264497861,
+      "geomean_size_ratio": 0.7068460322091993,
+      "mean_decision_ms": 0.009862513979896903,
+      "mean_passes": 12.0,
+      "mean_schedule_ms": 23.10704769915901,
+      "n": 10.0,
+      "worst_ratio": 0.9999632206454777
+    },
+    "dqn-seed0": {
+      "best_ratio": 0.4711019316893534,
+      "geomean_ratio": 0.8938222293567506,
+      "geomean_size_ratio": 0.8184412411953477,
+      "mean_decision_ms": 3.4795003186445683,
+      "mean_passes": 6.1,
+      "mean_schedule_ms": 11.150046985130757,
+      "n": 10.0,
+      "worst_ratio": 0.9999816103227388
+    },
+    "dqn-seed1": {
+      "best_ratio": 0.8904007214996065,
+      "geomean_ratio": 0.9561396970830068,
+      "geomean_size_ratio": 0.8221798268136316,
+      "mean_decision_ms": 6.406901183072478,
+      "mean_passes": 11.8,
+      "mean_schedule_ms": 32.81705969711766,
+      "n": 10.0,
+      "worst_ratio": 1.0
+    },
+    "dqn-seed2": {
+      "best_ratio": 0.8577941496272731,
+      "geomean_ratio": 0.9520106178999573,
+      "geomean_size_ratio": 0.8212397821908728,
+      "mean_decision_ms": 6.6054051800165325,
+      "mean_passes": 12.0,
+      "mean_schedule_ms": 23.022380389738828,
+      "n": 10.0,
+      "worst_ratio": 0.9999958766032282
+    },
+    "model:gradient_boosting": {
+      "best_ratio": 0.43487130350119385,
+      "geomean_ratio": 0.8149828438471303,
+      "geomean_size_ratio": 0.7789548376452092,
+      "mean_decision_ms": 289.22646492137574,
+      "mean_passes": 5.1,
+      "mean_schedule_ms": 299.4068686035462,
+      "n": 10.0,
+      "worst_ratio": 0.999969350537898
+    },
+    "oracle-greedy": {
+      "best_ratio": 0.3615291464425632,
+      "geomean_ratio": 0.7409767346481465,
+      "geomean_size_ratio": 0.8439075419636944,
+      "mean_decision_ms": 13989.521841221722,
+      "mean_passes": 4.5,
+      "mean_schedule_ms": 13997.131720400648,
+      "n": 10.0,
+      "worst_ratio": 0.9999632206454777
+    }
+  },
+  "example": {
+    "O2": {
+      "best_ratio": 0.6074672048435923,
+      "geomean_ratio": 0.8280458677166905,
+      "geomean_size_ratio": 1.0388224844899623,
+      "mean_decision_ms": 0.01027016800695232,
+      "mean_passes": 12.0,
+      "mean_schedule_ms": 17.31572170475764,
+      "n": 7.0,
+      "worst_ratio": 0.996054666540416
+    },
+    "dqn-seed0": {
+      "best_ratio": 0.9178479381443299,
+      "geomean_ratio": 0.9667628043636189,
+      "geomean_size_ratio": 0.8805163110228882,
+      "mean_decision_ms": 3.2405463945386663,
+      "mean_passes": 6.285714285714286,
+      "mean_schedule_ms": 9.691938001196831,
+      "n": 7.0,
+      "worst_ratio": 1.0
+    },
+    "dqn-seed1": {
+      "best_ratio": 0.9162462159434914,
+      "geomean_ratio": 0.9629468661120875,
+      "geomean_size_ratio": 0.8856220845023716,
+      "mean_decision_ms": 5.686648863567306,
+      "mean_passes": 11.857142857142858,
+      "mean_schedule_ms": 17.787773012449698,
+      "n": 7.0,
+      "worst_ratio": 1.0
+    },
+    "dqn-seed2": {
+      "best_ratio": 0.9178479381443299,
+      "geomean_ratio": 0.9670217125268966,
+      "geomean_size_ratio": 0.8658620575836978,
+      "mean_decision_ms": 5.4125371389091015,
+      "mean_passes": 12.0,
+      "mean_schedule_ms": 18.023573286232672,
+      "n": 7.0,
+      "worst_ratio": 1.0
+    },
+    "model:gradient_boosting": {
+      "best_ratio": 0.7215980024968789,
+      "geomean_ratio": 0.8671622959978643,
+      "geomean_size_ratio": 1.206191902034543,
+      "mean_decision_ms": 376.7596494123739,
+      "mean_passes": 5.857142857142857,
+      "mean_schedule_ms": 390.7047414187608,
+      "n": 7.0,
+      "worst_ratio": 0.996054666540416
+    },
+    "oracle-greedy": {
+      "best_ratio": 0.5988900100908173,
+      "geomean_ratio": 0.825144567284553,
+      "geomean_size_ratio": 1.1994950490994005,
+      "mean_decision_ms": 1840.644299019394,
+      "mean_passes": 4.571428571428571,
+      "mean_schedule_ms": 1847.5861499984082,
+      "n": 7.0,
+      "worst_ratio": 0.996054666540416
+    }
+  },
+  "generated": {
+    "O2": {
+      "best_ratio": 0.05080213903743316,
+      "geomean_ratio": 0.558254785093103,
+      "geomean_size_ratio": 0.24097022314441707,
+      "mean_decision_ms": 0.012477828422561288,
+      "mean_passes": 12.0,
+      "mean_schedule_ms": 85.29320878908038,
+      "n": 100.0,
+      "worst_ratio": 0.8716981132075472
+    },
+    "dqn-seed0": {
+      "best_ratio": 0.08823529411764706,
+      "geomean_ratio": 0.6315419675301996,
+      "geomean_size_ratio": 0.4612033850104451,
+      "mean_decision_ms": 28.068856221507303,
+      "mean_passes": 9.81,
+      "mean_schedule_ms": 121.48768194310833,
+      "n": 100.0,
+      "worst_ratio": 0.9092102720338309
+    },
+    "dqn-seed1": {
+      "best_ratio": 0.06329113924050633,
+      "geomean_ratio": 0.6600352486990524,
+      "geomean_size_ratio": 0.3952559863620999,
+      "mean_decision_ms": 40.97756559262052,
+      "mean_passes": 11.97,
+      "mean_schedule_ms": 150.89388975175098,
+      "n": 100.0,
+      "worst_ratio": 0.9968895800933126
+    },
+    "dqn-seed2": {
+      "best_ratio": 0.07219251336898395,
+      "geomean_ratio": 0.6413132812676137,
+      "geomean_size_ratio": 0.40248510292469813,
+      "mean_decision_ms": 44.240510134841315,
+      "mean_passes": 11.78,
+      "mean_schedule_ms": 153.64175205526408,
+      "n": 100.0,
+      "worst_ratio": 0.9948710840033269
+    },
+    "model:gradient_boosting": {
+      "best_ratio": 0.06329113924050633,
+      "geomean_ratio": 0.5796937943790837,
+      "geomean_size_ratio": 0.2890873276468545,
+      "mean_decision_ms": 436.35772660316434,
+      "mean_passes": 8.52,
+      "mean_schedule_ms": 510.2923229202861,
+      "n": 100.0,
+      "worst_ratio": 0.9060104881000404
+    },
+    "oracle-greedy": {
+      "best_ratio": 0.05080213903743316,
+      "geomean_ratio": 0.5526012059206861,
+      "geomean_size_ratio": 0.26476300822723,
+      "mean_decision_ms": 991.5722216898575,
+      "mean_passes": 7.54,
+      "mean_schedule_ms": 1049.8320201720344,
+      "n": 100.0,
+      "worst_ratio": 0.8716981132075472
+    }
+  }
+}

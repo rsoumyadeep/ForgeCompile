@@ -92,3 +92,23 @@ geomean final/initial interpreter cost. Data: `experiments/EXP-005-ml-scheduling
   1%.
 - O2 beats the greedy oracle on 9/100 programs, which is evidence that some gains need
   lookahead (EXP-006).
+
+## EXP-006 — Double DQN pass scheduling (Phase 9) — negative result
+
+**Setup:** 3 seeds × 3,000 episodes on 400 training programs; best checkpoint chosen on 40
+validation programs; held-out evaluation with outputs checked. Commit `039d03b`. Data:
+`experiments/EXP-006-rl-scheduling/` (including checkpoints and training curves).
+
+| policy | generated test (100) | benchmarks (10) | examples (7) | decision ms |
+|---|---:|---:|---:|---:|
+| oracle-greedy | 0.553 | 0.741 | 0.825 | 2,153 |
+| **O2** | **0.558** | **0.741** | **0.828** | 0 |
+| supervised model | 0.580 | 0.815 | 0.867 | 420 |
+| DQN (seeds 0 / 1 / 2) | 0.632 / 0.660 / 0.641 | 0.894 / 0.956 / 0.952 | 0.967 / 0.963 / 0.967 | 25–39 |
+
+- **DQN does not beat O2, the supervised model or the greedy oracle on any program group.** All
+  three seeds agree.
+- There were 0 invalid transformations.
+- Diagnosed failure: the policies repeat one no-op pass (e.g. `licm` ×12). The −0.002 per-step
+  penalty is a smaller action gap than the Q-function's error. The DQN also lacked the supervised
+  policy's no-retry rule; that follow-up is EXP-012.

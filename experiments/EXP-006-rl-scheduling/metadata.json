@@ -1,0 +1,54 @@
+{
+  "environment": {
+    "cpu_count": 64,
+    "forgecompile_version": "0.0.1",
+    "git": {
+      "commit": "039d03bf9178dfb50873963fcda95af339beba3d",
+      "dirty": false
+    },
+    "platform": {
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "release": "6.2.0-39-generic",
+      "system": "Linux",
+      "version": "#40~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Thu Nov 16 10:53:04 UTC 2"
+    },
+    "python": {
+      "executable": "/data/home/rsoumyadeep/ForgeCompile/.venv/bin/python3",
+      "implementation": "CPython",
+      "version": "3.11.16"
+    },
+    "tools": [
+      {
+        "available": true,
+        "detail": "LLVM 22.1.0",
+        "name": "llvmlite",
+        "version": "0.50.0"
+      },
+      {
+        "available": true,
+        "detail": "python -m ziglang",
+        "name": "zig",
+        "version": "0.16.0"
+      },
+      {
+        "available": true,
+        "detail": "/usr/bin/clang",
+        "name": "clang",
+        "version": "Ubuntu clang version 14.0.0-1ubuntu1.1"
+      }
+    ]
+  },
+  "experiment_id": "EXP-006-rl-scheduling",
+  "finished_utc": "2026-10-03T11:26:14.511984+00:00",
+  "seed": 0,
+  "started_utc": "2026-10-03T10:50:36.890513+00:00",
+  "status": "completed",
+  "summary": {
+    "invalid_transformations": {
+      "0": 0,
+      "1": 0,
+      "2": 0
+    }
+  }
+}

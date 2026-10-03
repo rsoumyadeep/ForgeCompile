@@ -408,6 +408,60 @@ These are tiny-data results and are **not evidence** for any hypothesis.
   validation programs every 100 episodes.
 - **Metrics:** as EXP-005, plus the training curves (return, cost ratio, ε, loss, validation
   geomean).
+- **Runs:**
+  - A sanity run at `039d03b` (2 seeds × 40 episodes) exercised the new parallel-seed code
+    end to end.
+  - The full run: commit `039d03b`, server, 3 seeds in parallel processes. Each seed took
+    about 24 min of training (32k environment steps), plus evaluation. The machine load
+    average was 30–38 from another user's jobs. Curated results, including checkpoints and
+    per-episode training curves, are in `experiments/EXP-006-rl-scheduling/`.
+- **Training:**
+  - Best validation geomean per seed: 0.690, 0.695 and 0.691.
+  - Validation stops improving after about 1,300 episodes, and the training-episode cost ratio
+    only moves from about 0.745 (first 500 episodes) to about 0.71 (last 500).
+  - Invalid transformations: 0, 0, 0.
+- **Results** (held out; geomean final/initial cost; lower is better):
+
+  | policy | generated test (100) | benchmarks (10) | examples (7) | size ratio (all) | passes | decision ms |
+  |---|---:|---:|---:|---:|---:|---:|
+  | oracle-greedy | 0.553 | 0.741 | 0.825 | 0.320 | 7.1 | 2,153 |
+  | O2 | 0.558 | 0.741 | 0.828 | 0.288 | 12.0 | 0 |
+  | model (GBDT) | 0.580 | 0.815 | 0.867 | 0.343 | 8.1 | 420 |
+  | DQN seed 0 | 0.632 | 0.894 | 0.967 | 0.503 | 9.3 | 25 |
+  | DQN seed 2 | 0.641 | 0.952 | 0.967 | 0.448 | 11.8 | 39 |
+  | DQN seed 1 | 0.660 | 0.956 | 0.963 | 0.442 | 11.9 | 36 |
+
+  The oracle, O2 and model rows reproduce EXP-005 exactly, which confirms that the
+  evaluation is deterministic. The model's decision time differs (420 vs 1,086 ms) only
+  because of machine load and OpenMP thread contention.
+- **Hypotheses.**
+  - **H1 rejected:** no DQN seed beats O2. DQN is 13–18% worse on generated programs and
+    21–29% worse on benchmarks.
+  - **H2 holds trivially:** DQN is far from the greedy oracle.
+  - **H3 (open question) answered:** DQN is clearly worse than the supervised model.
+  - **H4 supported:** 0 invalid transformations in training and evaluation.
+- **Diagnosis** (per-program actions in `outcomes.json`):
+  - **The policies degenerate into repeating one pass.** Seed 0 applies `licm` 533 times on
+    100 programs, e.g. `licm × 12` on `gen100502`. Seed 1 repeats `simplifycfg`, seed 2
+    `copyprop`. There are about 600 immediate repeats per seed, against 0 for the oracle.
+  - After the first application a repeat is a no-op whose true value is
+    Q(s, best) − λ, with λ = 0.002. That *action gap* is far smaller than the network's
+    approximation error, so the greedy argmax falls on near-ties. The agent also rarely
+    chooses `stop`: mean passes are 9–12.
+  - Learning is sample-limited:
+    - 32k transitions, about 80 per training program;
+    - ε reaches its floor after only about 550 episodes;
+    - each transition carries one action's outcome, while each supervised record carries all
+      11 (EXP-004).
+- **Methodological note found in the analysis:**
+  - The supervised `ModelPolicy` has a "never retry a pass in an unchanged state" rule
+    (`ml/policies.py`). `DQNPolicy` did not, so the wrappers were not equal.
+  - EXP-006 is kept exactly as pre-registered and run.
+  - The fair-wrapper comparison and a scaled-up training run are the pre-registered
+    follow-up EXP-012.
+- **Next action:** EXP-012 (no-retry wrapper for DQN, validated on validation programs first,
+  then 4× more training). EXP-010 (λ, γ, action space) tests whether a larger action gap
+  (λ = 0.01) helps.
 
 ## EXP-011 — Headroom: how much better than O2 can any 12-pass schedule be?
 
