@@ -586,3 +586,26 @@ These are tiny-data results and are **not evidence** for any hypothesis.
     problem is smaller.
   - H5: no condition beats O2 on generated test programs.
 - **Configuration:** `experiments/EXP-010-rl-ablations/run.py --episodes 2000 --seeds 0 1 --workers 16`.
+
+## EXP-008 — Do learned schedules make native code faster or smaller, and at what overhead?
+
+- **Date:** 2026-10-03 (pre-registered, before any EXP-008 number exists)
+- **Protocol:**
+  - For each of the 10 benchmark kernels, every policy chooses its pass list on the small
+    instance (budget 12). The decision time is recorded.
+  - The large instance is compiled with exactly that list at LLVM -O0 (D-028) and timed with
+    the Phase 6 protocol (correctness gate, warm-up, interleaved seeded rounds, 10 repeats).
+  - Also recorded: `.text` bytes, ForgeCompile pass time, native compile time. LLVM -O2
+    without ForgeCompile passes is included as an external reference only.
+- **Policies:** fc-O0, O1, O2, frequency, the supervised model, oracle-greedy, and DQN
+  checkpoints chosen by validation score, each with and without the no-retry wrapper. The
+  checkpoints are EXP-006 seed 0 (best validation 0.690) and the best-validation EXP-012
+  scaled seed.
+- **Hypotheses:**
+  - H1: no learned policy beats O2 natively by more than EXP-003's noise band, consistent with
+    EXP-005/006/011 at the interpreter level.
+  - H2: at LLVM -O0, ForgeCompile O2's geomean native speedup over fc-O0 is small (< 10%), and
+    smaller than its interpreter-cost reduction (EXP-002 sanity: flat native ratios).
+  - H3: every learned policy's decision time exceeds O2's total ForgeCompile pass time.
+- **Configuration:** `experiments/EXP-008-native-policies/run.py --repeats 10 --noretry --dqn
+  <EXP-006 seed0> <EXP-012 best>`. It runs alone on the server, with the load average recorded.

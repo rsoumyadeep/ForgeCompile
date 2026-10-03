@@ -14,7 +14,8 @@ kernels (none of them seen in training or model selection):
    included as an external reference point, not as a competitor.
 
 Policies: fc-O0 (no passes), O1, O2, frequency, the supervised model (EXP-004
-selection rule), oracle-greedy, and every DQN checkpoint in ``--dqn-dir``.
+selection rule), oracle-greedy, and each DQN checkpoint given with ``--dqn`` (chosen by
+*validation* score, never by test results), plus its no-retry variant with ``--noretry``.
 
 Usage::
 
@@ -70,16 +71,20 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=4, help="dataset workers (cached)")
     parser.add_argument("--benchmarks", help="comma-separated subset (sanity runs)")
     parser.add_argument(
-        "--dqn-dir",
+        "--dqn",
         type=Path,
-        default=REPO / "experiments" / "EXP-006-rl-scheduling" / "checkpoints",
-        help="directory with dqn_seed*.npz checkpoints (EXP-006)",
+        nargs="*",
+        default=[REPO / "experiments" / "EXP-006-rl-scheduling" / "checkpoints" / "dqn_seed0.npz"],
+        help="DQN checkpoints (.npz); default: EXP-006 seed 0 (best validation score)",
+    )
+    parser.add_argument(
+        "--noretry", action="store_true", help="also evaluate each DQN with the no-retry wrapper"
     )
     parser.add_argument("--sanity", action="store_true", help="separate id, no curated output")
     args = parser.parse_args()
 
     dataset_config = DatasetConfig()
-    checkpoints = sorted(args.dqn_dir.glob("dqn_seed*.npz"))
+    checkpoints = [p.resolve() for p in args.dqn]
     benchmarks = load_suite(names=args.benchmarks.split(",") if args.benchmarks else None)
     run = ExperimentRun.create(
         "EXP-008-native-policies" + ("-sanity" if args.sanity else ""),
@@ -90,6 +95,7 @@ def main() -> None:
             "llvm_opt": 0,
             "benchmarks": [b.name for b in benchmarks],
             "dqn_checkpoints": [str(p.relative_to(REPO)) for p in checkpoints],
+            "dqn_noretry": args.noretry,
         },
         seed=args.seed,
         repo_dir=REPO,
@@ -100,7 +106,12 @@ def main() -> None:
         order = frequency_order(data["train"])
         evaluator = CostEvaluator("cost")
         obs_size = len(FEATURE_NAMES) + 1 + len(ENV_ACTIONS)
-        agents = {p.stem: DQNAgent.load(p, obs_size, len(ENV_ACTIONS)) for p in checkpoints}
+        agents = {
+            f"{p.parent.parent.name.split('-')[1]}:{p.stem}": DQNAgent.load(
+                p, obs_size, len(ENV_ACTIONS)
+            )
+            for p in checkpoints
+        }  # names like "006:dqn_seed0"
 
         def policies() -> list[Policy]:
             out: list[Policy] = [
@@ -111,7 +122,10 @@ def main() -> None:
                 ModelPolicy(model, name=f"model:{model.name}"),
                 OraclePolicy(evaluator),
             ]
-            out += [DQNPolicy(a, MAX_STEPS, name=stem) for stem, a in agents.items()]
+            for stem, a in agents.items():
+                out.append(DQNPolicy(a, MAX_STEPS, name=stem))
+                if args.noretry:
+                    out.append(DQNPolicy(a, MAX_STEPS, name=f"{stem}+noretry", no_retry=True))
             return out
 
         rows: list[dict[str, object]] = []
