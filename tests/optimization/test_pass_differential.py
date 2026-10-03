@@ -15,6 +15,8 @@ import pytest
 
 from forgecompile.driver import build_ir
 from forgecompile.ir.interpreter import run_module
+from forgecompile.ir.parser import parse_module
+from forgecompile.ir.printer import format_module
 from forgecompile.optimization.pass_manager import PRESETS, available_passes, optimize
 from forgecompile.testing.program_generator import generate_program
 
@@ -27,6 +29,10 @@ def assert_preserves(source: str, passes: list[str]) -> None:
     module = build_ir(source)
     optimize(module, passes)
     assert run_module(module).observable == reference, passes
+    # Optimized IR must stay printable *and* parseable: the ML/RL pipeline deep-copies
+    # modules through the text format (F-016: a pass created an unparseable name).
+    text = format_module(module)
+    assert format_module(parse_module(text)) == text, passes
 
 
 @pytest.mark.parametrize("pipeline", sorted(PRESETS))

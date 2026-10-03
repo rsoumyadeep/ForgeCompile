@@ -10,10 +10,13 @@ rewrite branches never leave a stale predecessor list behind.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator
 
 from forgecompile.ir.instructions import Instruction, PhiInst, Terminator
 from forgecompile.ir.values import IRType, Register
+
+_NAME_UNSAFE = re.compile(r"[^\w.]")
 
 
 class BasicBlock:
@@ -93,6 +96,9 @@ class Function:
             yield from block.instructions
 
     def _unique(self, hint: str, used: set[str]) -> str:
+        # Names must stay inside the textual IR's identifier alphabet ([A-Za-z0-9_.]), or the
+        # printed module would not parse back (FAILURES F-016: "%i.x-2" from a negative factor).
+        hint = _NAME_UNSAFE.sub("_", hint) or "r"
         name = hint
         counter = 1
         while name in used:

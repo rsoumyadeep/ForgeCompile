@@ -83,6 +83,17 @@ def test_strength_reduction_replaces_iv_multiply() -> None:
     assert "phi [0, " in text and "add %i.2.x12" in text
 
 
+def test_strength_reduction_with_negative_factor_round_trips() -> None:
+    """Regression (F-016): a negative factor produced the unparseable name ``%i.2.x-3``."""
+    from forgecompile.ir.parser import parse_module
+
+    source = "fn main() { let s = 0; for i in 0..100 { s = s + i * -3; } print(s); }"
+    text, _, after = compiled(source, ["constfold", "copyprop", "strength"])  # checks output
+    assert after.opcode_counts.get("mul", 0) == 0  # type: ignore[attr-defined]
+    assert "%i.2.xm3" in text
+    parse_module(text)  # raised IRParseError before the fix
+
+
 def test_strength_reduction_skips_conditional_multiply() -> None:
     source = "fn main() { let s = 0; for i in 0..10 { if i == 3 { s = s + i * 12; } } print(s); }"
     _, before, after = compiled(source, ["copyprop", "strength"])

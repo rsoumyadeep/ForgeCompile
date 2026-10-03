@@ -98,3 +98,23 @@ def test_float_constants_round_trip(value: float) -> None:
 def test_parse_errors(text: str, message: str) -> None:
     with pytest.raises(IRParseError, match=message):
         parse_module(text)
+
+
+def test_parse_error_survives_pickling() -> None:
+    """Regression (F-016): raised in a worker process, it must unpickle with its message."""
+    import pickle
+
+    from forgecompile.ir.parser import IRParseError
+
+    error = pickle.loads(pickle.dumps(IRParseError(7, "unknown opcode 'x'")))
+    assert isinstance(error, IRParseError)
+    assert error.line_number == 7 and str(error) == "line 7: unknown opcode 'x'"
+
+
+def test_new_register_names_stay_parseable() -> None:
+    from forgecompile.ir.function import Function
+    from forgecompile.ir.values import IRType
+
+    fn = Function("f", [], IRType.I64)
+    assert fn.new_register("i.x-2", IRType.I64).name == "i.x_2"
+    assert fn.new_register("", IRType.I64).name == "r"

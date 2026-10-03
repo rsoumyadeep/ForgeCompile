@@ -93,7 +93,7 @@ class StrengthReduction(FunctionPass):
         latch: BasicBlock,
     ) -> Register:
         assert phi.dest is not None
-        base = f"{phi.dest.name}.x{k}"
+        base = f"{phi.dest.name}.x{k}" if k >= 0 else f"{phi.dest.name}.xm{-k}"
         if isinstance(init, Constant):
             start: Value = const_int(wrap(int(init.value) * k))
         else:

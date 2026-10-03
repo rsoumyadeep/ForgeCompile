@@ -314,3 +314,41 @@ Template:
   4. Runs are marked failed or aborted automatically (D-035).
 - **Lesson:** "It runs on my machine" is not a resource plan. Long experiments need an explicit
   budget, a robust session, and incremental or explicitly failed state.
+
+## F-016 — Strength reduction created register names that the IR parser rejects
+
+- **Date / Phase:** 2026-10-03, Phase 7 (first full EXP-004 run)
+- **What happened:** The full dataset build (600 programs) crashed with `BrokenProcessPool`.
+  The 137-program validation (EXP-007) had passed. The run is preserved and marked `failed`
+  (`EXP-004-pass-prediction_20261003T101441…`).
+- **Debugging:**
+  1. The worker exception was not visible: `IRParseError` has a custom `__init__`, so default
+     exception pickling could not rebuild it in the parent process. The real error was
+     replaced by `BrokenProcessPool`.
+  2. A debug script ran each program's trajectory in its own task, catching tracebacks as
+     strings. It found 2 of 600 programs (`gen100510`, `gen100544`), both failing with
+     `IRParseError: unknown opcode '%i61.2.x-2:'`.
+- **Root cause:**
+  - `strength` names its new induction variable `%<iv>.x<k>` after the constant factor k. For a
+    negative k (from constant folding of `i * -2`), the name contains `-`. That is outside the
+    textual IR's identifier alphabet `[\w.]`.
+  - Nothing else noticed:
+    - the in-memory IR does not care about names;
+    - the verifier checks structure, not spelling;
+    - LLVM accepts `-` in local names, so native builds worked;
+    - the pass differential tests checked semantics but never re-parsed optimized IR.
+  - The ML pipeline deep-copies modules by printing and re-parsing them (`clone_module`), so it
+    was the first component to need the round trip after optimization.
+- **Fix:**
+  1. `Function._unique` now maps any character outside `[\w.]` to `_`, so no pass can create an
+     unprintable name. `strength` also spells negative factors as `xm<k>`.
+  2. `IRParseError.__reduce__` keeps the exception picklable with its message.
+  3. The pass differential tests now also check `format(parse(format(M))) == format(M)` after
+     every pipeline. Regression tests cover the negative factor, the sanitizer and pickling.
+- **Did it work?** The regression test fails on the old source and passes on the new one. The
+  full dataset build then completed (see EXP-004).
+- **Lesson:**
+  - A secondary representation (here, IR text) is only as reliable as the tests that exercise
+    it *after every transformation*, not just after lowering.
+  - Exceptions crossing process boundaries must be picklable, or debugging information is lost
+    exactly when it is needed.

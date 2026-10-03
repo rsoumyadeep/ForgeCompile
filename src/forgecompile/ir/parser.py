@@ -64,6 +64,12 @@ class IRParseError(Exception):
     def __init__(self, line_number: int, message: str) -> None:
         super().__init__(f"line {line_number}: {message}")
         self.line_number = line_number
+        self.message = message
+
+    def __reduce__(self) -> tuple[type[IRParseError], tuple[int, str]]:
+        # Picklable with its real arguments, so it survives being raised in a worker
+        # process (F-016: the default pickling lost the message behind BrokenProcessPool).
+        return (IRParseError, (self.line_number, self.message))
 
 
 def _split_args(text: str) -> list[str]:
